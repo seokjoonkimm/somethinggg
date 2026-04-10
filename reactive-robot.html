@@ -170,6 +170,17 @@
   const params = new URLSearchParams(location.search);
   const IS_MOBILE = params.get('mode') === 'mobile';
 
+  // ===== QR 코드를 가장 먼저 생성 (다른 코드 에러에 영향 안 받게) =====
+  if (!IS_MOBILE) {
+    try {
+      const mobileUrl = location.origin + location.pathname + '?mode=mobile';
+      QRCode.toCanvas(document.getElementById('qr-canvas'), mobileUrl, {
+        width:160, margin:2, color:{dark:'#ffffff',light:'#00000000'}
+      }, (err) => { if(err) console.warn('QR err:', err); });
+      console.log('QR URL:', mobileUrl);
+    } catch(e) { console.warn('QR:', e); }
+  }
+
   if (IS_MOBILE) {
     document.getElementById('display-mode').style.display = 'none';
     document.getElementById('mobile-mode').classList.add('active');
