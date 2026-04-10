@@ -8,8 +8,7 @@
 <!-- Firebase SDK (compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-<!-- QR Code -->
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<!-- QR Code: loaded as ESM in module script -->
 
 <style>
   :root { color-scheme:dark; }
@@ -136,27 +135,14 @@
   <div class="mobile-status" id="m-status"></div>
 </div>
 
-<!-- QR 코드 생성 (일반 스크립트, module 밖에서 실행) -->
-<script>
-  window.addEventListener('DOMContentLoaded', function() {
-    var params = new URLSearchParams(location.search);
-    if (params.get('mode') === 'mobile') return; // 모바일이면 QR 불필요
-    try {
-      var canvas = document.getElementById('qr-canvas');
-      var url = location.origin + location.pathname + '?mode=mobile';
-      QRCode.toCanvas(canvas, url, {width:160, margin:2, color:{dark:'#ffffff',light:'#00000000'}}, function(err){
-        if(err) console.warn('QR error:', err);
-        else console.log('QR 생성 완료:', url);
-      });
-    } catch(e) { console.warn('QR:', e); }
-  });
-</script>
 
 <!-- MediaPipe Pose -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 
 <script type="module">
+  import QRCode from 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/+esm';
+
   // ╔═══════════════════════════════════════════════╗
   // ║  CONFIG — 여기만 채우면 됩니다                    ║
   // ╚═══════════════════════════════════════════════╝
