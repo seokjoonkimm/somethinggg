@@ -146,9 +146,9 @@
   // ╔═══════════════════════════════════════════════╗
   // ║  CONFIG — 여기만 채우면 됩니다                    ║
   // ╚═══════════════════════════════════════════════╝
-  const FIXED_API_KEY   = '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';
+  const FIXED_API_KEY   = new URLSearchParams(location.search).get('key') || '';
   const FIXED_SPLINE_URL = 'https://prod.spline.design/nQDnMXbHrZBUcy4T/scene.splinecode';
-  const OPENAI_API_KEY  = '';
+  const OPENAI_API_KEY  = new URLSearchParams(location.search).get('oai') || '';
   const OPENAI_TTS_VOICE = 'sage';
   const OPENAI_TTS_MODEL = 'gpt-4o-mini-tts';
 
@@ -187,6 +187,10 @@
   //  DISPLAY MODE
   // ════════════════════════════════════════════════
   function initDisplay() {
+    // API 키 체크
+    if (!FIXED_API_KEY) {
+      document.getElementById('log').innerHTML = '<div class="msg" style="background:rgba(255,80,80,0.3);border-color:rgba(255,80,80,0.4)">API 키가 없습니다. URL에 ?key=YOUR_KEY 를 추가해주세요.</div>';
+    }
 
     // ----- Spline -----
     let splineApp=null,lookObject=null;
