@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>Reactive Robot · Face Tracking + Claude Chat</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<!-- QR Code -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
+<style>
+  :root { color-scheme:dark; }
+  html,body { margin:0; height:100%; background:#0b0d10; color:#e8ecf1;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif; }
+
+  /* ===== DISPLAY MODE ===== */
+  .stage { position:fixed; inset:0; }
+  .scene { position:absolute; inset:0; overflow:hidden; }
+  .scene > iframe,.scene > canvas { position:absolute; inset:0; width:100%; height:100%; border:0; }
+  #cam { position:fixed; right:16px; top:16px; width:180px; height:135px; border-radius:12px;
+    object-fit:cover; transform:scaleX(-1); opacity:.85; box-shadow:0 6px 24px #0008; background:#000; }
+  #dot { position:fixed; width:14px; height:14px; border-radius:50%; background:#38bdf8;
+    box-shadow:0 0 24px #38bdf8; pointer-events:none; transform:translate(-50%,-50%); z-index:5; display:none; }
+
+  #qr-wrap { position:fixed; left:28px; bottom:28px; z-index:25;
+    display:flex; flex-direction:column; align-items:center; gap:8px; }
+  #qr-wrap canvas { border-radius:12px; box-shadow:0 8px 32px #0008; }
+  #qr-label { font-size:13px; opacity:.7; text-align:center; line-height:1.4; }
+  #conn-count { font-size:11px; padding:4px 10px; border-radius:8px; background:rgba(56,189,248,0.15); }
+
+  .bar { position:fixed; left:50%; bottom:28px; transform:translateX(-50%);
+    width:min(680px,92vw); display:flex; gap:10px; align-items:center;
+    padding:10px 10px 10px 22px; border-radius:9999px;
+    background:linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.12) 100%);
+    backdrop-filter:blur(30px) saturate(180%); -webkit-backdrop-filter:blur(30px) saturate(180%);
+    border:1px solid rgba(255,255,255,0.25);
+    box-shadow:0 20px 60px rgba(0,0,0,0.45), 0 2px 10px rgba(0,0,0,0.25),
+      inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(255,255,255,0.08);
+    z-index:20; }
+  .bar::before { content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    background:radial-gradient(120% 140% at 30% 0%, rgba(255,255,255,0.22), transparent 55%); mix-blend-mode:overlay; }
+  .bar input { flex:1; padding:14px 6px; border:0; outline:none; background:transparent; color:#fff; font-size:16px; font-family:inherit; }
+  .bar input::placeholder { color:rgba(255,255,255,0.55); }
+  .bar button { width:44px; height:44px; border-radius:50%; border:0; cursor:pointer;
+    background:linear-gradient(135deg,#ffffff,#d5e6ff); color:#0a1220; font-size:18px; font-weight:700;
+    box-shadow:0 6px 16px rgba(80,120,255,0.35), inset 0 1px 0 rgba(255,255,255,0.9);
+    display:flex; align-items:center; justify-content:center; transition:transform .15s; }
+  .bar button:hover { transform:scale(1.05); }
+  .bar button:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+  .bar button.ghost { background:rgba(255,255,255,0.12); color:#fff;
+    border:1px solid rgba(255,255,255,0.25); box-shadow:inset 0 1px 0 rgba(255,255,255,0.3); font-size:18px; }
+  .bar button.ghost.listening { background:linear-gradient(135deg,#ff5a7a,#ff8aa1);
+    box-shadow:0 0 0 0 rgba(255,90,122,0.7); animation:pulse 1.2s ease-out infinite; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(255,90,122,0.6)} 100%{box-shadow:0 0 0 18px rgba(255,90,122,0)} }
+
+  #log { position:fixed; left:50%; transform:translateX(-50%); bottom:100px;
+    width:min(680px,92vw); max-height:45vh;
+    overflow:auto; display:flex; flex-direction:column; gap:8px; pointer-events:none; z-index:15; }
+  .msg { padding:12px 16px; border-radius:20px; font-size:14px; line-height:1.5;
+    background:rgba(255,255,255,0.1); backdrop-filter:blur(20px) saturate(160%);
+    -webkit-backdrop-filter:blur(20px) saturate(160%);
+    border:1px solid rgba(255,255,255,0.18);
+    box-shadow:0 8px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.25);
+    color:#fff; pointer-events:auto; white-space:pre-wrap; max-width:85%; }
+  .msg.user { align-self:flex-end;
+    background:linear-gradient(135deg, rgba(120,170,255,0.35), rgba(80,130,255,0.22)); }
+  .msg.remote { align-self:flex-start;
+    background:linear-gradient(135deg, rgba(120,255,170,0.25), rgba(80,200,130,0.18));
+    border-color:rgba(120,255,170,0.25); }
+
+  /* ===== MOBILE MODE ===== */
+  .mobile-wrap { display:none; min-height:100vh; min-height:100dvh; padding:24px 16px;
+    background:linear-gradient(160deg,#0b0d10,#101828);
+    flex-direction:column; align-items:center; justify-content:center; gap:20px; }
+  .mobile-wrap.active { display:flex; }
+  .mobile-title { font-size:22px; font-weight:700; text-align:center; }
+  .mobile-sub { font-size:14px; opacity:.6; text-align:center; }
+  .mobile-input-wrap { width:100%; max-width:420px; display:flex; gap:8px; }
+  .mobile-input-wrap input { flex:1; padding:14px 16px; border-radius:14px;
+    border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.08);
+    color:#fff; font-size:16px; outline:none; }
+  .mobile-input-wrap input::placeholder { color:rgba(255,255,255,0.4); }
+  .mobile-input-wrap button { padding:14px 20px; border-radius:14px; border:0;
+    background:#38bdf8; color:#001018; font-weight:700; font-size:15px; cursor:pointer; }
+  .mobile-input-wrap button:disabled { opacity:.5; }
+  .mobile-status { font-size:12px; opacity:.5; text-align:center; }
+  .mobile-answer { width:100%; max-width:420px; padding:16px; border-radius:16px;
+    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
+    font-size:15px; line-height:1.5; min-height:60px; white-space:pre-wrap; display:none; }
+  .mobile-answer.visible { display:block; }
+  .mobile-queue { font-size:13px; opacity:.6; text-align:center; min-height:18px; }
+</style>
+</head>
+<body>
+
+<!-- ====== DISPLAY MODE ====== -->
+<div id="display-mode">
+  <div class="stage">
+    <div class="scene" id="scene">
+      <iframe id="splineIframe"
+        src="https://my.spline.design/nexbotrobotcharacterconcept-E9rM7OgDTZrDR71n6W45kTW5/"
+        frameborder="0"></iframe>
+    </div>
+  </div>
+  <div class="bar">
+    <button id="mic" class="ghost" aria-label="voice">🎙</button>
+    <input id="q" placeholder="로봇에게 질문해보세요 — 마이크 버튼을 눌러도 돼요" autofocus />
+    <button id="send" aria-label="send">↑</button>
+  </div>
+  <video id="cam" autoplay playsinline muted></video>
+  <div id="dot"></div>
+  <div id="log"></div>
+  <div id="qr-wrap">
+    <canvas id="qr-canvas"></canvas>
+    <div id="qr-label">QR을 찍고<br/>질문해보세요</div>
+    <div id="conn-count"></div>
+  </div>
+</div>
+
+<!-- ====== MOBILE MODE ====== -->
+<div class="mobile-wrap" id="mobile-mode">
+  <div class="mobile-title">넥스봇에게 질문하기</div>
+  <div class="mobile-sub">질문을 입력하면 화면 속 로봇이 답해줘요</div>
+  <div class="mobile-input-wrap">
+    <input id="m-input" placeholder="궁금한 걸 물어보세요…" enterkeyhint="send" />
+    <button id="m-send">전송</button>
+  </div>
+  <div class="mobile-queue" id="m-queue"></div>
+  <div class="mobile-answer" id="m-answer"></div>
+  <div class="mobile-status" id="m-status"></div>
+</div>
+
+<!-- MediaPipe Pose -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+<script type="module">
+  // ╔═══════════════════════════════════════════════╗
+  // ║  CONFIG — 여기만 채우면 됩니다                    ║
+  // ╚═══════════════════════════════════════════════╝
+  const FIXED_API_KEY   = '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';
+  const FIXED_SPLINE_URL = 'https://prod.spline.design/nQDnMXbHrZBUcy4T/scene.splinecode';
+  const OPENAI_API_KEY  = '';
+  const OPENAI_TTS_VOICE = 'sage';
+  const OPENAI_TTS_MODEL = 'gpt-4o-mini-tts';
+
+  // Firebase config — Firebase Console에서 복사하세요
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyDYMrkbYHkUmAqMfvw8QLOXrzoNe3IEpCQ",
+    authDomain: "somethinggg-c7f23.firebaseapp.com",
+    databaseURL: "https://somethinggg-c7f23-default-rtdb.firebaseio.com",
+    projectId: "somethinggg-c7f23",
+  };
+
+  // ===== Firebase 초기화 =====
+  let db = null;
+  const ROOM_ID = 'nexbot-live';
+  try {
+    if (FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.databaseURL) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.database();
+      console.log('Firebase 연결 성공');
+    }
+  } catch(e) { console.warn('Firebase 초기화 실패:', e); }
+
+  // ===== MODE 분기 =====
+  const params = new URLSearchParams(location.search);
+  const IS_MOBILE = params.get('mode') === 'mobile';
+
+  if (IS_MOBILE) {
+    document.getElementById('display-mode').style.display = 'none';
+    document.getElementById('mobile-mode').classList.add('active');
+    initMobile();
+  } else {
+    initDisplay();
+  }
+
+  // ════════════════════════════════════════════════
+  //  DISPLAY MODE
+  // ════════════════════════════════════════════════
+  function initDisplay() {
+
+    // ----- Spline -----
+    let splineApp=null,lookObject=null;
+    async function loadSpline(url){
+      const{Application}=await import('https://unpkg.com/@splinetool/runtime/build/runtime.js');
+      const scene=document.getElementById('scene');
+      scene.innerHTML='<canvas id="splineCanvas"></canvas>';
+      const c=document.getElementById('splineCanvas');
+      c.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
+      splineApp=new Application(c);await splineApp.load(url);
+      try{lookObject=splineApp.findObjectByName('Head')||splineApp.findObjectByName('Robot')||null;}catch(e){}
+    }
+    loadSpline(FIXED_SPLINE_URL).catch(console.error);
+
+    // ----- 사람 추적 -----
+    const video=document.getElementById('cam'),dot=document.getElementById('dot');
+    class OE{constructor(mc=1,b=.05,dc=1){this.mc=mc;this.b=b;this.dc=dc;this.xP=null;this.dP=0;this.tP=null;}
+      a(c,d){const r=2*Math.PI*c*d;return r/(r+1);}
+      f(x,t){if(!this.tP){this.tP=t;this.xP=x;return x;}const d=Math.max((t-this.tP)/1e3,1e-3);this.tP=t;
+        const dx=(x-this.xP)/d,aD=this.a(this.dc,d),dH=aD*dx+(1-aD)*this.dP;this.dP=dH;
+        const c2=this.mc+this.b*Math.abs(dH),al=this.a(c2,d),xH=al*x+(1-al)*this.xP;this.xP=xH;return xH;}}
+    const efx=new OE(.25,.02,1),efy=new OE(.25,.02,1);
+    const W=3,bX=[],bY=[];
+    function pA(b,v){b.push(v);if(b.length>W)b.shift();let s=0;for(const x of b)s+=x;return s/b.length;}
+    let tX=innerWidth/2,tY=innerHeight/2,lX=tX,lY=tY,hF=false;
+
+    const pose=new Pose({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`});
+    pose.setOptions({modelComplexity:1,smoothLandmarks:true,enableSegmentation:false,minDetectionConfidence:.5,minTrackingConfidence:.5});
+    pose.onResults(r=>{const lm=r.poseLandmarks;if(!lm){hF=false;return;}
+      const n=lm[0],l=lm[11],rr=lm[12];let px,py;
+      if(n&&n.visibility>.5){px=n.x;py=n.y;}
+      else if(l&&rr&&l.visibility>.3&&rr.visibility>.3){px=(l.x+rr.x)/2;py=(l.y+rr.y)/2-.12;}
+      else{hF=false;return;}
+      const nx=1-px,ny=py,now=performance.now();
+      tX=pA(bX,efx.f(nx*innerWidth,now));tY=pA(bY,efy.f(ny*innerHeight,now));hF=true;});
+
+    let talking=false,talkStart=0,talkPulse=0;
+    function tick(){requestAnimationFrame(tick);
+      const dx=tX-lX,dy=tY-lY;if(Math.hypot(dx,dy)>1.2){lX+=dx*.18;lY+=dy*.18;}
+      if(hF){dot.style.display='block';dot.style.left=lX+'px';dot.style.top=lY+'px';}
+      if(splineApp){const c=document.getElementById('splineCanvas');
+        if(c)c.dispatchEvent(new MouseEvent('pointermove',{clientX:lX,clientY:lY,bubbles:true}));
+        if(lookObject){const nx2=lX/innerWidth,ny2=lY/innerHeight;
+          let rx=(ny2-.5)*.6,ry=(nx2-.5)*1,rz=0;
+          if(talking){const t2=(performance.now()-talkStart)/1e3;
+            rx+=Math.sin(t2*2*Math.PI/4)*.01;ry+=Math.sin(t2*2*Math.PI/5.5)*.008;rz+=Math.sin(t2*2*Math.PI/7)*.005;
+            rx+=talkPulse*.004;talkPulse*=.95;}
+          else{const t2=performance.now()/1e3;rx+=Math.sin(t2*.8)*.003;ry+=Math.sin(t2*.5)*.002;}
+          if(!window._rR)window._rR={x:0,y:0,z:0};const s=.03;
+          window._rR.x+=(rx-window._rR.x)*s;window._rR.y+=(ry-window._rR.y)*s;window._rR.z+=(rz-window._rR.z)*s;
+          lookObject.rotation.x=window._rR.x;lookObject.rotation.y=window._rR.y;
+          if('z'in lookObject.rotation)lookObject.rotation.z=window._rR.z;}}}
+    tick();
+    (async()=>{try{const s=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}});
+      video.srcObject=s;new Camera(video,{onFrame:async()=>{await pose.send({image:video});},width:640,height:480}).start();
+    }catch(e){console.warn('cam',e);}})();
+
+    // ----- Chat -----
+    const q=document.getElementById('q'),sendBtn=document.getElementById('send'),
+          micBtn=document.getElementById('mic'),log=document.getElementById('log');
+    function addMsg(t,w){const d=document.createElement('div');d.className='msg '+w;d.textContent=t;log.appendChild(d);log.scrollTop=log.scrollHeight;return d;}
+    function trimLog(){while(log.children.length>6)log.removeChild(log.firstChild);}
+
+    let busy=false;
+    const queue=[];
+    function enqueue(text,source,qRef){queue.push({text,source,qRef});processQueue();}
+    async function processQueue(){
+      if(busy||!queue.length)return;busy=true;
+      const{text,source,qRef}=queue.shift();
+      addMsg(text,source==='remote'?'remote':'user');trimLog();
+      q.value='';sendBtn.disabled=true;
+      const bubble=addMsg('…','bot');trimLog();
+      try{
+        const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+          headers:{'content-type':'application/json','x-api-key':FIXED_API_KEY,
+            'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+          body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:256,
+            system:'너는 화면 속 친근한 3D 로봇 캐릭터 "넥스봇"이야. 한국어로 2~3문장 이내의 짧고 다정한 말투로 답해. 이모지는 쓰지 마.',
+            messages:[{role:'user',content:text}]})});
+        const j=await r.json();
+        const out=j?.content?.[0]?.text||(j?.error?.message??JSON.stringify(j));
+        bubble.textContent=out;
+        speak(out);
+        // Firebase에 답변 기록 → 모바일에 전달
+        if(db&&qRef)qRef.update({answer:out,answeredAt:firebase.database.ServerValue.TIMESTAMP});
+      }catch(e){bubble.textContent='오류: '+e.message;}
+      finally{sendBtn.disabled=false;busy=false;q.focus();processQueue();}
+    }
+    sendBtn.onclick=()=>{const t=q.value.trim();if(t)enqueue(t,'local',null);};
+    q.addEventListener('keydown',e=>{if(e.key==='Enter'){const t=q.value.trim();if(t)enqueue(t,'local',null);}});
+
+    // ----- TTS -----
+    function pickKoV(){const v=speechSynthesis.getVoices();
+      return v.find(v=>/ko(-|_)KR/i.test(v.lang))||v.find(v=>/korean/i.test(v.name))||v.find(v=>/^ko/i.test(v.lang))||null;}
+    let cachedV=null;speechSynthesis.onvoiceschanged=()=>{cachedV=pickKoV();};
+    let currentAudio=null,pulseTimer=null;
+    async function speak(text){
+      if(OPENAI_API_KEY){try{
+        if(currentAudio){currentAudio.pause();currentAudio=null;}
+        if(pulseTimer){clearInterval(pulseTimer);pulseTimer=null;}
+        const r=await fetch('https://api.openai.com/v1/audio/speech',{method:'POST',
+          headers:{'Authorization':'Bearer '+OPENAI_API_KEY,'Content-Type':'application/json'},
+          body:JSON.stringify({model:OPENAI_TTS_MODEL,voice:OPENAI_TTS_VOICE,input:text,
+            instructions:'친근하고 다정한 로봇 캐릭터의 목소리로, 차분하고 자연스럽게 한국어로 말해주세요.',format:'mp3'})});
+        if(!r.ok)throw new Error(r.status);
+        const bl=await r.blob(),u=URL.createObjectURL(bl),a=new Audio(u);currentAudio=a;
+        a.onplay=()=>{talking=true;talkStart=performance.now();pulseTimer=setInterval(()=>{talkPulse=1;},280);};
+        a.onended=a.onerror=()=>{talking=false;if(pulseTimer){clearInterval(pulseTimer);pulseTimer=null;}URL.revokeObjectURL(u);if(currentAudio===a)currentAudio=null;};
+        await a.play();return;}catch(e){console.warn('openai tts fallback',e);}}
+      try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='ko-KR';u.rate=1.02;u.pitch=1.1;
+        const v=cachedV||pickKoV();if(v)u.voice=v;
+        u.onstart=()=>{talking=true;talkStart=performance.now();};u.onend=()=>{talking=false;};u.onerror=()=>{talking=false;};
+        u.onboundary=()=>{talkPulse=1;};speechSynthesis.speak(u);}catch(e){}}
+
+    // ----- STT -----
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    let rec=null,listening=false;
+    if(SR){rec=new SR();rec.lang='ko-KR';rec.interimResults=true;rec.continuous=false;
+      rec.onstart=()=>{listening=true;micBtn.classList.add('listening');};
+      rec.onend=()=>{listening=false;micBtn.classList.remove('listening');};rec.onerror=()=>{};
+      rec.onresult=e=>{let f='',i2='';for(let i=e.resultIndex;i<e.results.length;i++){
+        if(e.results[i].isFinal)f+=e.results[i][0].transcript;else i2+=e.results[i][0].transcript;}
+        q.value=f||i2;if(f)setTimeout(()=>enqueue(f,'local',null),150);};}
+    micBtn.onclick=()=>{if(!rec)return;if(listening){rec.stop();return;}speechSynthesis.cancel();try{rec.start();}catch(e){}};
+
+    // ----- Firebase: 모바일 질문 수신 -----
+    if (db) {
+      const qRef = db.ref(`rooms/${ROOM_ID}/questions`);
+      // 새 질문이 들어올 때마다 트리거
+      qRef.orderByChild('answeredAt').equalTo(null).on('child_added', snap => {
+        const d = snap.val();
+        if (d && d.text) {
+          enqueue(d.text, 'remote', snap.ref);
+        }
+      });
+      // 30초마다 오래된 질문 정리 (1분 이상 지난 것)
+      setInterval(() => {
+        const cutoff = Date.now() - 60000;
+        qRef.orderByChild('createdAt').endAt(cutoff).once('value', snap => {
+          snap.forEach(c => c.ref.remove());
+        });
+      }, 30000);
+    }
+
+    // ----- QR 코드 생성 -----
+    // file:// 로 열었을 때는 QR이 의미없으므로 안내 표시
+    const isLocal = location.protocol === 'file:';
+    if (isLocal) {
+      document.getElementById('qr-label').innerHTML =
+        'QR 기능을 쓰려면<br/>웹 서버에 호스팅하세요<br/><span style="font-size:11px;opacity:.5">python3 -m http.server 8080</span>';
+    }
+    // QR은 항상 생성 시도
+    try {
+      const base = isLocal
+        ? 'https://[호스팅-주소]/reactive-robot.html'
+        : location.origin + location.pathname;
+      const mobileUrl = base + '?mode=mobile';
+      QRCode.toCanvas(document.getElementById('qr-canvas'), mobileUrl, {
+        width:160, margin:2, color:{dark:'#ffffff',light:'#00000000'}
+      });
+    } catch(e) { console.warn('QR 생성 실패:', e); }
+
+    if (!db) {
+      document.getElementById('conn-count').textContent = 'Realtime Database를 먼저 만들어주세요';
+    }
+
+    // 30초 무입력 시 자동 포커스 (전시용)
+    let idle;function resetIdle(){clearTimeout(idle);idle=setTimeout(()=>{q.value='';q.focus();},30000);}
+    document.addEventListener('keydown',resetIdle);document.addEventListener('click',resetIdle);resetIdle();
+  }
+
+  // ════════════════════════════════════════════════
+  //  MOBILE MODE
+  // ════════════════════════════════════════════════
+  function initMobile() {
+    const inp=document.getElementById('m-input');
+    const sendBtn=document.getElementById('m-send');
+    const statusEl=document.getElementById('m-status');
+    const answerEl=document.getElementById('m-answer');
+    const queueEl=document.getElementById('m-queue');
+
+    if (!db) {
+      statusEl.textContent = '서비스 연결에 실패했습니다. 잠시 후 다시 시도해주세요.';
+      return;
+    }
+
+    statusEl.textContent = '준비됨! 질문을 입력하세요.';
+    statusEl.style.color = '#38bdf8';
+    let myQuestionRef = null;
+
+    function sendQuestion() {
+      const text = inp.value.trim();
+      if (!text) return;
+      sendBtn.disabled = true;
+      inp.value = '';
+      queueEl.textContent = '로봇이 답변을 준비하고 있어요…';
+      answerEl.classList.remove('visible');
+
+      // Firebase에 질문 기록
+      const ref = db.ref(`rooms/${ROOM_ID}/questions`).push();
+      myQuestionRef = ref;
+      ref.set({
+        text: text,
+        createdAt: firebase.database.ServerValue.TIMESTAMP,
+        answeredAt: null,
+        answer: null
+      });
+
+      // 답변 대기 (이 질문의 answer 필드가 채워질 때까지)
+      ref.on('value', snap => {
+        const d = snap.val();
+        if (d && d.answer) {
+          answerEl.textContent = d.answer;
+          answerEl.classList.add('visible');
+          queueEl.textContent = '';
+          sendBtn.disabled = false;
+          ref.off(); // 리스너 해제
+        }
+      });
+
+      // 30초 타임아웃
+      setTimeout(() => {
+        if (sendBtn.disabled) {
+          sendBtn.disabled = false;
+          queueEl.textContent = '응답이 지연되고 있어요. 다시 시도해주세요.';
+          ref.off();
+        }
+      }, 30000);
+    }
+
+    sendBtn.onclick = sendQuestion;
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') sendQuestion(); });
+  }
+</script>
+</body>
+</html>
