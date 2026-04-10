@@ -326,26 +326,17 @@
       }, 30000);
     }
 
-    // ----- QR 코드 생성 -----
-    // file:// 로 열었을 때는 QR이 의미없으므로 안내 표시
-    const isLocal = location.protocol === 'file:';
-    if (isLocal) {
-      document.getElementById('qr-label').innerHTML =
-        'QR 기능을 쓰려면<br/>웹 서버에 호스팅하세요<br/><span style="font-size:11px;opacity:.5">python3 -m http.server 8080</span>';
-    }
-    // QR은 항상 생성 시도
+    // ----- QR 코드 생성 (Firebase 유무와 무관하게 항상 표시) -----
     try {
-      const base = isLocal
-        ? 'https://[호스팅-주소]/reactive-robot.html'
-        : location.origin + location.pathname;
-      const mobileUrl = base + '?mode=mobile';
+      const mobileUrl = location.origin + location.pathname + '?mode=mobile';
       QRCode.toCanvas(document.getElementById('qr-canvas'), mobileUrl, {
         width:160, margin:2, color:{dark:'#ffffff',light:'#00000000'}
       });
+      console.log('QR URL:', mobileUrl);
     } catch(e) { console.warn('QR 생성 실패:', e); }
 
     if (!db) {
-      document.getElementById('conn-count').textContent = 'Realtime Database를 먼저 만들어주세요';
+      document.getElementById('conn-count').textContent = 'Firebase DB 연결 대기 중…';
     }
 
     // 30초 무입력 시 자동 포커스 (전시용)
