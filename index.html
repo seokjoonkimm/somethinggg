@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Nexbot Mannequin · Rim Gradient</title>
+<style>
+  html,body{margin:0;height:100%;background:#e8e8ec;overflow:hidden;font-family:'Pretendard',system-ui,-apple-system,sans-serif;color:#222}
+  #err{position:fixed;top:10px;left:10px;right:10px;max-height:150px;overflow:auto;background:rgba(255,0,0,.08);color:#900;font-family:ui-monospace,monospace;font-size:11px;padding:8px;border-radius:8px;z-index:999;display:none;white-space:pre-wrap}
+  canvas{display:block}
+
+  /* ── Left panel: QR + description ── */
+  #left-panel{position:fixed;left:48px;top:50%;transform:translateY(-50%);z-index:10;display:flex;flex-direction:column;align-items:flex-start;gap:20px;pointer-events:none}
+  #left-panel>*{pointer-events:auto}
+  #qrbox{background:rgba(255,255,255,.0);border-radius:16px;padding:0;display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+  #qrbox canvas{width:140px!important;height:140px!important;border-radius:10px}
+  #qrbox .desc{font-size:15px;color:#444;line-height:1.5;letter-spacing:-0.01em}
+  #qrbox .desc b{color:#111;font-weight:700}
+
+  /* ── Right panel: Q&A ── */
+  #right-panel{position:fixed;right:48px;top:50%;transform:translateY(-50%);z-index:10;max-width:380px;width:30vw;min-width:260px;display:flex;flex-direction:column;align-items:flex-end;gap:14px;pointer-events:none}
+  #question-display{font-size:15px;color:#666;text-align:right;line-height:1.55;opacity:0;transition:opacity .4s;letter-spacing:-0.01em}
+  #question-display.show{opacity:1}
+  #answer-display{font-size:20px;color:#111;font-weight:600;text-align:right;line-height:1.55;opacity:0;transition:opacity .4s;letter-spacing:-0.02em}
+  #answer-display.show{opacity:1}
+
+  /* ── Bottom: input + controls ── */
+  #bottom-bar{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;z-index:10;width:min(520px,calc(100% - 80px))}
+  #askform{display:flex;gap:8px;flex:1}
+  #askform input{flex:1;padding:12px 20px;border-radius:999px;border:1px solid rgba(0,0,0,.1);background:rgba(255,255,255,.75);backdrop-filter:blur(14px);font-size:14px;outline:none;color:#111}
+  #askform input:focus{border-color:#111}
+  #askform button{padding:0 18px;border-radius:999px;border:none;background:#111;color:#fff;font-size:13px;font-weight:600;cursor:pointer}
+
+
+  /* cam preview */
+  #cam{position:fixed;bottom:28px;left:20px;width:120px;height:90px;border-radius:10px;overflow:hidden;border:1px solid rgba(0,0,0,.06);background:#000;z-index:10;opacity:.6}
+  #cam video,#cam canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+
+  /* loading indicator */
+  #loading{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:100;font-size:16px;color:#888;text-align:center}
+
+  /* ── Rim Control Panel ── */
+  #rim-panel{position:fixed;top:20px;right:20px;z-index:50;background:rgba(20,20,20,.85);backdrop-filter:blur(16px);border-radius:14px;padding:18px 20px;min-width:240px;color:#eee;font-size:12px;display:flex;flex-direction:column;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08)}
+  #rim-panel .panel-title{font-size:13px;font-weight:700;letter-spacing:.02em;color:#fff;margin-bottom:2px;display:flex;justify-content:space-between;align-items:center}
+  #rim-panel .panel-title button{background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:0 2px}
+  #rim-panel .panel-title button:hover{color:#fff}
+  #rim-panel .ctrl-row{display:flex;flex-direction:column;gap:4px}
+  #rim-panel .ctrl-row label{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#aaa}
+  #rim-panel .ctrl-row label span{color:#fff;font-weight:600;min-width:36px;text-align:right}
+  #rim-panel input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:#333;outline:none}
+  #rim-panel input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;cursor:pointer;box-shadow:0 0 4px rgba(0,0,0,.4)}
+  #rim-panel input[type=color]{width:32px;height:22px;border:1px solid #555;border-radius:4px;padding:0;cursor:pointer;background:none}
+  #rim-panel .color-row{display:flex;align-items:center;justify-content:space-between}
+  #rim-panel.collapsed .panel-body{display:none}
+
+</style>
+</head>
+<body>
+
+<div id="err"></div>
+<div id="loading">Loading model...</div>
+
+<!-- Rim Effect Controls -->
+<div id="rim-panel">
+  <div class="panel-title">Rim Effect <button id="rim-toggle">−</button></div>
+  <div class="panel-body">
+    <div class="ctrl-row">
+      <label>Intensity <span id="rim-intensity-val">2.00</span></label>
+      <input type="range" id="rim-intensity" min="0" max="3" step="0.01" value="2.00">
+    </div>
+    <div class="ctrl-row">
+      <label>Band Start <span id="rim-start-val">0.34</span></label>
+      <input type="range" id="rim-start" min="0" max="1" step="0.01" value="0.34">
+    </div>
+    <div class="ctrl-row">
+      <label>Band End <span id="rim-end-val">0.88</span></label>
+      <input type="range" id="rim-end" min="0" max="1" step="0.01" value="0.88">
+    </div>
+    <div class="ctrl-row">
+      <label>Fade Start <span id="rim-fade-val">0.93</span></label>
+      <input type="range" id="rim-fade" min="0" max="1" step="0.01" value="0.93">
+    </div>
+    <div class="ctrl-row">
+      <label>Glow Power <span id="rim-glow-pow-val">1.00</span></label>
+      <input type="range" id="rim-glow-pow" min="0.1" max="20" step="0.1" value="1.0">
+    </div>
+    <div class="ctrl-row">
+      <label>Glow Intensity <span id="rim-glow-int-val">0.20</span></label>
+      <input type="range" id="rim-glow-int" min="0" max="1" step="0.01" value="0.20">
+    </div>
+    <div style="border-top:1px solid rgba(255,255,255,.1);margin:4px 0"></div>
+    <div class="ctrl-row">
+      <label>Body Glow <span id="rim-body-glow-val">0.15</span></label>
+      <input type="range" id="rim-body-glow" min="0" max="0.5" step="0.01" value="0.15">
+    </div>
+    <div class="ctrl-row">
+      <label>Edge Boost <span id="rim-edge-boost-val">1.20</span></label>
+      <input type="range" id="rim-edge-boost" min="0" max="3" step="0.01" value="1.20">
+    </div>
+    <div style="border-top:1px solid rgba(255,255,255,.1);margin:4px 0"></div>
+    <div class="ctrl-row">
+      <label>Breath Speed <span id="rim-breath-speed-val">0.60</span></label>
+      <input type="range" id="rim-breath-speed" min="0.1" max="2" step="0.01" value="0.60">
+    </div>
+    <div class="ctrl-row">
+      <label>Breath Range <span id="rim-breath-range-val">0.35</span></label>
+      <input type="range" id="rim-breath-range" min="0" max="0.8" step="0.01" value="0.35">
+    </div>
+  </div>
+</div>
+
+<div id="statusText" style="display:none">idle</div>
+
+
+<!-- Left panel: QR + description -->
+<div id="left-panel">
+  <div id="qrbox">
+    <canvas id="qr"></canvas>
+    <div class="desc"><b>wanted의 AI,<br>엔노이아에게 질문하세요</b></div>
+  </div>
+</div>
+
+<!-- Right panel: Q&A display -->
+<div id="right-panel">
+  <div id="question-display"></div>
+  <div id="answer-display"></div>
+</div>
+
+<!-- Bottom bar: input -->
+<div id="bottom-bar">
+  <form id="askform" autocomplete="off">
+    <input id="askinput" type="text" placeholder="질문을 입력하세요..." maxlength="200" />
+    <button type="submit">전송</button>
+  </form>
+</div>
+
+
+<div id="cam">
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="poseCanvas"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<!-- OBJ model loaded externally (man.obj) -->
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script>
+  const errBox = document.getElementById('err');
+  window.showErr = function(msg){
+    errBox.style.display = 'block';
+    errBox.textContent += msg + '\n';
+  };
+  window.addEventListener('error', (e)=> showErr('ERR: ' + (e.message || e.error) + (e.filename ? ' @ '+e.filename+':'+e.lineno : '')));
+  window.addEventListener('unhandledrejection', (e)=> showErr('PROMISE: ' + (e.reason?.message || e.reason)));
+  // Capture WebGL context loss
+  window._glLost = false;
+  document.addEventListener('webglcontextlost', (e)=>{ e.preventDefault(); window._glLost=true; showErr('WebGL context LOST — GPU overloaded. Reload page.'); });
+  document.addEventListener('webglcontextrestored', ()=>{ window._glLost=false; showErr('WebGL context restored.'); });
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+// No Three.js post-processing — using CSS bloom overlay instead
+
+// ============================================================
+// CONFIG
+// ============================================================
+const params = new URLSearchParams(location.search);
+const OPENAI_KEY = params.get('openai') || '';
+const MOBILE_URL = params.get('mobile') || 'https://seokjoonkimm.github.io/somethinggg/ask-nexbot.html';
+const ROOM_ID    = params.get('room')   || 'nexbot-live';
+
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDYMrkbYHkUmAqMfvw8QLOXrzoNe3IEpCQ",
+  authDomain: "somethinggg-c7f23.firebaseapp.com",
+  databaseURL: "https://somethinggg-c7f23-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "somethinggg-c7f23",
+};
+
+const SYSTEM_PROMPT = `너는 전시회 인터랙티브 로봇 'nexbot'이다.
+- 항상 정중한 존댓말과 '~입니다'체로만 답한다.
+- 답변은 3문장 이내, 총 120자 이내.
+- 비속어, 성적 표현, 정치/종교 논쟁, 개인정보 요청, 불법 요청에는 "그 질문에는 답변드릴 수 없습니다." 라고만 답한다.
+- 모르는 내용은 추측하지 않고 "잘 모르겠습니다."로 답한다.
+- 이모지와 마크다운은 사용하지 않는다.`;
+
+// ============================================================
+// THREE.JS
+// ============================================================
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xe8e8ec);
+
+// No default HDRI — webcam reflection only
+
+const camera = new THREE.PerspectiveCamera(35, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(0, 0.25, 1.2);
+camera.lookAt(0, 0.15, 0);
+
+// Lights removed — pure environment/reflection only
+
+// ---------- CSS Bloom overlay ----------
+const bloomCanvas = document.createElement('canvas');
+const bloomCtx = bloomCanvas.getContext('2d');
+bloomCanvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;mix-blend-mode:screen;filter:blur(18px) brightness(0.6);';
+document.body.appendChild(bloomCanvas);
+
+function updateBloomSize(){
+  bloomCanvas.width = Math.round(innerWidth / 4);
+  bloomCanvas.height = Math.round(innerHeight / 4);
+}
+updateBloomSize();
+
+
+// ---------- Rim uniforms (shared across all body materials) ----------
+// Brand colors: Orange, Pink, Sky Blue, Violet
+const rimUniforms = {
+  uColor1: { value: new THREE.Vector3(1.0, 0.36, 0.0) },    // #FF5C00 Orange
+  uColor2: { value: new THREE.Vector3(1.0, 0.557, 1.0) },   // #FF8EFF Pink
+  uColor3: { value: new THREE.Vector3(0.0, 0.678, 1.0) },   // #00ADFF Sky Blue
+  uColor4: { value: new THREE.Vector3(0.514, 0.392, 1.0) },  // #8364FF Violet
+  uRimIntensity: { value: 2.00 },
+  uBandStart: { value: 0.34 },
+  uBandEnd: { value: 0.88 },
+  uFadeStart: { value: 0.93 },
+  uGlowPow: { value: 1.0 },
+  uGlowInt: { value: 0.20 },
+  uBodyGlow: { value: 0.15 },
+  uEdgeBoost: { value: 1.20 },
+  uTime: { value: 0.0 },
+  uBreathSpeed: { value: 0.6 },
+  uBreathRange: { value: 0.35 },
+};
+
+// ---------- Deep black glossy material (screen blend reflections) ----------
+function makeBodyMat(){
+  const mat = new THREE.MeshPhysicalMaterial({
+    color: 0x010102,
+    roughness: 0.01,
+    metalness: 0.15,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.005,
+    reflectivity: 1.0,
+    ior: 2.2,
+    envMapIntensity: 3.5,
+  });
+  mat.onBeforeCompile = (shader)=>{
+    shader.uniforms.uColor1 = rimUniforms.uColor1;
+    shader.uniforms.uColor2 = rimUniforms.uColor2;
+    shader.uniforms.uColor3 = rimUniforms.uColor3;
+    shader.uniforms.uColor4 = rimUniforms.uColor4;
+    shader.uniforms.uRimIntensity = rimUniforms.uRimIntensity;
+    shader.uniforms.uBandStart = rimUniforms.uBandStart;
+    shader.uniforms.uBandEnd = rimUniforms.uBandEnd;
+    shader.uniforms.uFadeStart = rimUniforms.uFadeStart;
+    shader.uniforms.uGlowPow = rimUniforms.uGlowPow;
+    shader.uniforms.uGlowInt = rimUniforms.uGlowInt;
+    shader.uniforms.uBodyGlow = rimUniforms.uBodyGlow;
+    shader.uniforms.uEdgeBoost = rimUniforms.uEdgeBoost;
+    shader.uniforms.uTime = rimUniforms.uTime;
+    shader.uniforms.uBreathSpeed = rimUniforms.uBreathSpeed;
+    shader.uniforms.uBreathRange = rimUniforms.uBreathRange;
+
+    shader.fragmentShader = `
+uniform vec3 uColor1;
+uniform vec3 uColor2;
+uniform vec3 uColor3;
+uniform vec3 uColor4;
+uniform float uRimIntensity;
+uniform float uBandStart;
+uniform float uBandEnd;
+uniform float uFadeStart;
+uniform float uGlowPow;
+uniform float uGlowInt;
+uniform float uBodyGlow;
+uniform float uEdgeBoost;
+uniform float uTime;
+uniform float uBreathSpeed;
+uniform float uBreathRange;
+
+vec3 gradientColor(float t) {
+  t = fract(t) * 4.0;
+  if (t < 1.0) return mix(uColor1, uColor2, t);
+  if (t < 2.0) return mix(uColor2, uColor3, t - 1.0);
+  if (t < 3.0) return mix(uColor3, uColor4, t - 2.0);
+  return mix(uColor4, uColor1, t - 3.0);
+}
+varying vec3 vWorldPos;
+` + shader.fragmentShader;
+
+    // Inject world position varying into vertex shader
+    shader.vertexShader = 'varying vec3 vWorldPos;\n' + shader.vertexShader;
+    shader.vertexShader = shader.vertexShader.replace(
+      '#include <worldpos_vertex>',
+      `#include <worldpos_vertex>
+       vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;`
+    );
+
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <dithering_fragment>',
+      `#include <dithering_fragment>
+       {
+         vec3 baseColor = vec3(0.004, 0.004, 0.008);
+         vec3 reflection = max(gl_FragColor.rgb - baseColor, 0.0);
+         gl_FragColor.rgb = 1.0 - (1.0 - baseColor) * (1.0 - reflection);
+
+         vec3 nV = normalize(vNormal);
+         vec3 vDir = normalize(vViewPosition);
+         float fresnel = 1.0 - max(dot(nV, vDir), 0.0);
+
+         // ── Full-body flowing gradient ──
+         float bodyAngle = atan(vWorldPos.x, vWorldPos.z) / 6.28318 + 0.5;
+         float bodyHeight = vWorldPos.y * 1.5;
+
+         // Organic Siri-like flow
+         float flow = bodyHeight * 0.6 + bodyAngle * 0.4
+           + uTime * 0.12
+           + sin(uTime * 0.3 + bodyHeight * 2.0) * 0.2
+           + sin(uTime * 0.5 - bodyAngle * 3.0) * 0.15
+           + sin(uTime * 0.8 + bodyHeight + bodyAngle * 2.0) * 0.1;
+         vec3 flowColor = gradientColor(flow);
+
+         // Breathing pulse
+         float breath = sin(uTime * uBreathSpeed * 3.14159) * 0.5 + 0.5;
+
+         float bodyGlowVal = uBodyGlow + 0.1 * breath;
+         float edgeBoost = smoothstep(0.2, 0.8, fresnel) * uEdgeBoost;
+
+         // Rim band
+         float offset = breath * uBreathRange;
+         float bStart = uBandStart - offset;
+         float bEnd   = uBandEnd - offset;
+         float fStart = uFadeStart - offset * 0.5;
+         float band = smoothstep(bStart, bEnd, fresnel) * (1.0 - smoothstep(fStart, 1.0, fresnel));
+         float glow = pow(fresnel, uGlowPow) * uGlowInt;
+         float breathIntensity = uRimIntensity * (0.7 + 0.3 * breath);
+
+         gl_FragColor.rgb += flowColor * (bodyGlowVal + edgeBoost + band * breathIntensity + glow);
+       }`
+    );
+  };
+  return mat;
+}
+
+const bodyMat = makeBodyMat();
+const bodyMats = [bodyMat];
+
+// ---------- Rim panel UI wiring ----------
+{
+  const panel = document.getElementById('rim-panel');
+  document.getElementById('rim-toggle').addEventListener('click', ()=>{
+    panel.classList.toggle('collapsed');
+    document.getElementById('rim-toggle').textContent = panel.classList.contains('collapsed') ? '+' : '−';
+  });
+  const bind = (id, uniform, valId)=>{
+    const el = document.getElementById(id);
+    const valEl = document.getElementById(valId);
+    el.addEventListener('input', ()=>{
+      const v = parseFloat(el.value);
+      rimUniforms[uniform].value = v;
+      if(valEl) valEl.textContent = v.toFixed(2);
+    });
+  };
+  bind('rim-intensity', 'uRimIntensity', 'rim-intensity-val');
+  bind('rim-start', 'uBandStart', 'rim-start-val');
+  bind('rim-end', 'uBandEnd', 'rim-end-val');
+  bind('rim-fade', 'uFadeStart', 'rim-fade-val');
+  bind('rim-glow-pow', 'uGlowPow', 'rim-glow-pow-val');
+  bind('rim-glow-int', 'uGlowInt', 'rim-glow-int-val');
+  bind('rim-body-glow', 'uBodyGlow', 'rim-body-glow-val');
+  bind('rim-edge-boost', 'uEdgeBoost', 'rim-edge-boost-val');
+  bind('rim-breath-speed', 'uBreathSpeed', 'rim-breath-speed-val');
+  bind('rim-breath-range', 'uBreathRange', 'rim-breath-range-val');
+}
+
+// ---------- Load GLTF model ----------
+const mannequin = new THREE.Group();
+scene.add(mannequin);
+
+let headGroup = null; // will be set once GLTF loads
+
+// Load Draco-compressed GLB
+console.log('Starting GLB load...');
+const loadingEl = document.getElementById('loading');
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+const gltfLoader = new GLTFLoader();
+gltfLoader.setDRACOLoader(dracoLoader);
+gltfLoader.load('man_draco.glb', (gltf)=>{
+  const model = gltf.scene;
+  console.log('GLB parsed, processing meshes...');
+  if (loadingEl) loadingEl.textContent = 'Processing meshes...';
+
+  let meshCount = 0;
+  model.traverse((child)=>{
+    if (child.isMesh){
+      meshCount++;
+      // Use original normals from model (don't recompute — preserves smooth shading)
+      const mat = makeBodyMat();
+      mat.envMap = bodyMat.envMap;
+      child.material = mat;
+      child.material.side = THREE.FrontSide;
+      bodyMats.push(mat);
+    }
+  });
+  console.log('Meshes processed:', meshCount);
+
+  // Find Head object by name if exists
+  headGroup = model.getObjectByName('Head_2') || model.getObjectByName('Head');
+  if (!headGroup){
+    model.traverse((c)=>{ if (c.name && c.name.toLowerCase().includes('head') && !headGroup) headGroup = c; });
+  }
+
+  // Center and scale
+  const box = new THREE.Box3().setFromObject(model);
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  console.log('Model bounds:', JSON.stringify({min: box.min, max: box.max, size: size}));
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const scale = 1.2 / maxDim;
+  model.scale.setScalar(scale);
+  model.position.set(-center.x * scale, -center.y * scale - 0.10, -center.z * scale);
+
+  if (!headGroup){
+    headGroup = new THREE.Group();
+    const headY = (box.max.y - center.y) * scale * 0.85;
+    headGroup.position.set(0, headY, 0);
+    mannequin.add(headGroup);
+  }
+  if (headGroup) headGroup.userData.baseRotation = headGroup.rotation.clone();
+
+  mannequin.add(model);
+  if (loadingEl) loadingEl.style.display = 'none';
+  console.log('GLB done! Meshes:', meshCount, 'Scale:', scale.toFixed(4));
+}, (xhr)=>{
+  const pct = xhr.total ? (xhr.loaded/xhr.total*100).toFixed(0) : Math.round(xhr.loaded/1024/1024);
+  const msg = xhr.total ? pct+'%' : pct+'MB loaded';
+  console.log('Loading:', msg);
+  if (loadingEl) loadingEl.textContent = 'Loading model... ' + msg;
+}, (err)=>{
+  console.error('GLB load error', err);
+  if (loadingEl) loadingEl.textContent = 'Load failed! Check console (F12)';
+  window.showErr('GLB load failed: ' + (err.message || err));
+});
+
+
+
+// ---------- State machine ----------
+const STATES = {
+  idle:      {},
+  listening: {},
+  thinking:  {},
+  speaking:  {},
+};
+let current = { ...STATES.idle };
+let target  = { ...STATES.idle };
+function setState(name){
+  target = { ...STATES[name] };
+  document.getElementById('statusText').textContent = name;
+  document.querySelectorAll('#controls button').forEach(b=>
+    b.classList.toggle('active', b.dataset.state === name));
+}
+document.querySelectorAll('#controls button').forEach(b=>
+  b.addEventListener('click', ()=> setState(b.dataset.state)));
+
+// ---------- Head tracking target ----------
+const lookTarget = new THREE.Vector3(0, 0.55, 5);
+
+// ---------- Render loop ----------
+const clock = new THREE.Clock();
+const lerp = (a,b,t)=> a + (b-a)*t;
+
+function tick(){
+  const dt = clock.getDelta();
+  const t  = clock.getElapsedTime();
+  const k  = 1 - Math.exp(-dt * 3.0);
+
+  // breathing body motion
+  mannequin.position.y = Math.sin(t * 0.7) * 0.008;
+  // update rim animation time
+  rimUniforms.uTime.value = t;
+
+  // head tracking (headGroup may be null until GLTF loads)
+  if (headGroup){
+    const yaw   = Math.max(-1.2,  Math.min(1.2,  Math.atan2(lookTarget.x, lookTarget.z)));
+    const pitch = Math.max(-0.6, Math.min(0.6, -Math.atan2(lookTarget.y - 0.55, lookTarget.z)));
+    const base = headGroup.userData.baseRotation;
+    const baseY = base ? base.y : 0;
+    const baseX = base ? base.x : 0;
+    headGroup.rotation.y = lerp(headGroup.rotation.y, baseY + yaw,   k * 0.6);
+    headGroup.rotation.x = lerp(headGroup.rotation.x, baseX + pitch, k * 0.6);
+  }
+
+  if (!window._glLost){
+    // Update CubeCamera every frame for smooth reflections
+    if (window._cubeCamera){
+      window._cubeCamera.update(renderer, scene);
+    }
+    try {
+      renderer.render(scene, camera);
+      // Copy main canvas to bloom overlay (downscaled for performance)
+      bloomCtx.drawImage(renderer.domElement, 0, 0, bloomCanvas.width, bloomCanvas.height);
+    } catch(e){ console.error('render error',e); }
+  }
+  requestAnimationFrame(tick);
+}
+tick();
+
+addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  updateBloomSize();
+});
+
+// ============================================================
+// Webcam + MediaPipe Pose
+// ============================================================
+const video = document.getElementById('video');
+const poseCanvas = document.getElementById('poseCanvas');
+const pctx = poseCanvas.getContext('2d');
+let personSeen = false;
+let lastSeenAt = 0;
+
+let pose = null;
+function initPoseAndCamera(){
+  if (typeof Pose === 'undefined' || typeof Camera === 'undefined'){ setTimeout(initPoseAndCamera, 200); return; }
+
+  pose = new Pose({ locateFile:(f)=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}` });
+  pose.setOptions({
+    modelComplexity: 0,
+    smoothLandmarks: true,
+    enableSegmentation: false,
+    minDetectionConfidence: 0.6,
+    minTrackingConfidence: 0.6,
+  });
+  pose.onResults((res)=>{
+    poseCanvas.width  = video.videoWidth  || 320;
+    poseCanvas.height = video.videoHeight || 240;
+    pctx.clearRect(0,0,poseCanvas.width, poseCanvas.height);
+
+    if (res.poseLandmarks && res.poseLandmarks.length){
+      personSeen = true;
+      lastSeenAt = performance.now();
+
+      pctx.fillStyle = '#4af';
+      for (const i of [0, 11, 12]){
+        const l = res.poseLandmarks[i]; if (!l) continue;
+        pctx.beginPath();
+        pctx.arc(l.x*poseCanvas.width, l.y*poseCanvas.height, 4, 0, Math.PI*2);
+        pctx.fill();
+      }
+
+      const nose = res.poseLandmarks[0];
+      if (nose){
+        const nx = (1 - nose.x) - 0.5;
+        const ny = 0.5 - nose.y;
+        lookTarget.set(nx * 6.0, 0.55 + ny * 2.0, 3);
+      }
+
+      if (getStateName() === 'idle') setState('listening');
+    }
+  });
+
+  startCamera();
+}
+
+async function startCamera(){
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ video:{ width:640, height:480 }, audio:false });
+    video.srcObject = stream;
+    await video.play();
+
+    // Webcam reflection via CubeCamera
+    const videoTex = new THREE.VideoTexture(video);
+    videoTex.colorSpace = THREE.SRGBColorSpace;
+
+    // Mirror the texture itself (not the geometry)
+    videoTex.wrapS = THREE.RepeatWrapping;
+    videoTex.repeat.x = -1;
+    videoTex.offset.x = 1;
+
+    // Video sky-sphere — covers ALL reflection directions
+    const skySphere = new THREE.Mesh(
+      new THREE.SphereGeometry(20, 64, 32),
+      new THREE.MeshBasicMaterial({ map: videoTex, side: THREE.BackSide })
+    );
+    // Default UV center maps to -Z; rotate PI to move center to +Z (front face reflection)
+    skySphere.rotation.y = Math.PI + (90 * Math.PI / 180); // +90deg right
+    skySphere.layers.set(1);
+    scene.add(skySphere);
+
+    // CubeCamera captures the sky-sphere for reflections
+    const cubeRT = new THREE.WebGLCubeRenderTarget(256);
+    const cubeCamera = new THREE.CubeCamera(0.1, 100, cubeRT);
+    cubeCamera.layers.set(1);
+    scene.add(cubeCamera);
+
+    // Assign cubemap to all body materials
+    bodyMats.forEach(m=>{
+      m.envMap = cubeRT.texture;
+      m.envMapIntensity = 0.3;
+      m.needsUpdate = true;
+    });
+
+    // Store ref so render loop can update it
+    window._cubeCamera = cubeCamera;
+    window._cubeMannequin = mannequin;
+
+    const cam = new Camera(video, {
+      onFrame: async ()=>{ if(pose) await pose.send({ image: video }); },
+      width: 640, height: 480,
+    });
+    cam.start();
+  }catch(e){ console.warn('webcam unavailable', e); }
+}
+initPoseAndCamera();
+
+setInterval(()=>{
+  if (performance.now() - lastSeenAt > 4000){
+    personSeen = false;
+    lookTarget.set(0, 0.55, 5);
+    if (getStateName() === 'listening') setState('idle');
+  }
+}, 500);
+
+function getStateName(){ return document.getElementById('statusText').textContent.trim(); }
+
+// ============================================================
+// QR
+// ============================================================
+// QRCode is loaded via external <script> — may not be ready yet in module scope
+function initQR(){
+  if (typeof QRCode !== 'undefined'){
+    QRCode.toCanvas(document.getElementById('qr'), `${MOBILE_URL}?room=${encodeURIComponent(ROOM_ID)}`, {
+      width: 260, margin: 1, color:{ dark:'#111111', light:'#ffffff' },
+    });
+  } else { setTimeout(initQR, 200); }
+}
+initQR();
+
+// ============================================================
+// Firebase listener
+// ============================================================
+function initFirebase(){
+  if (typeof firebase === 'undefined'){ setTimeout(initFirebase, 200); return; }
+  firebase.initializeApp(FIREBASE_CONFIG);
+  const db = firebase.database();
+  const qRef = db.ref(`rooms/${ROOM_ID}/questions`);
+  const seen = new Set();
+  qRef.limitToLast(20).on('child_added', (snap)=>{
+    if (seen.has(snap.key)) return;
+    seen.add(snap.key);
+    const q = snap.val();
+    if (!q || !q.text) return;
+    if (q.ts && q.ts < Date.now() - 60*1000) return;
+    handleQuestion(q.text);
+  });
+}
+initFirebase();
+
+// ============================================================
+// GPT + TTS pipeline
+// ============================================================
+const questionEl = document.getElementById('question-display');
+const answerEl   = document.getElementById('answer-display');
+function showQuestion(t){ questionEl.textContent = `"${t}"`; questionEl.classList.add('show'); }
+function showAnswer(t){ answerEl.textContent = `"${t}"`; answerEl.classList.add('show'); }
+function hideQA(){ questionEl.classList.remove('show'); answerEl.classList.remove('show'); }
+// backward compat aliases
+function showCaption(t){ showAnswer(t); }
+function hideCaption(){ hideQA(); }
+
+let busy = false;
+async function handleQuestion(text){
+  if (busy) return;
+  busy = true;
+  try {
+    if (!OPENAI_KEY){
+      showAnswer('⚠️ URL에 ?openai=sk-... 를 추가해주세요');
+      return;
+    }
+    showQuestion(text);
+    setState('thinking');
+
+    let verdict = 'OK';
+    try {
+      const c = await fetch('https://api.openai.com/v1/chat/completions', {
+        method:'POST',
+        headers:{'Authorization':`Bearer ${OPENAI_KEY}`,'Content-Type':'application/json'},
+        body: JSON.stringify({
+          model:'gpt-4o-mini', temperature:0, max_tokens:3,
+          messages:[
+            {role:'system', content:'다음 질문이 전시회 로봇이 답하기에 적절한지 OK 또는 BLOCK 한 단어로만 답하라. 비속어, 성적 표현, 정치/종교 논쟁, 개인정보 요청, 불법 요청은 BLOCK.'},
+            {role:'user', content:text},
+          ],
+        }),
+      }).then(r=>r.json());
+      verdict = (c.choices?.[0]?.message?.content || 'OK').trim();
+    } catch(e){ console.warn('classify failed', e); }
+
+    let answer = '';
+    if (verdict.startsWith('BLOCK')){
+      answer = '죄송합니다. 그 질문에는 답변드릴 수 없습니다.';
+    } else {
+      try {
+        const r = await fetch('https://api.openai.com/v1/chat/completions', {
+          method:'POST',
+          headers:{'Authorization':`Bearer ${OPENAI_KEY}`,'Content-Type':'application/json'},
+          body: JSON.stringify({
+            model:'gpt-4o-mini', temperature:0.7, max_tokens:200,
+            messages:[
+              {role:'system', content: SYSTEM_PROMPT},
+              {role:'user',   content: text},
+            ],
+          }),
+        }).then(r=>r.json());
+        answer = r.choices?.[0]?.message?.content?.trim() || '잘 모르겠습니다.';
+      } catch(e){
+        console.error('answer fetch failed', e);
+        answer = '잠시 문제가 생겼습니다. 다시 시도해주세요.';
+      }
+    }
+
+    showAnswer(answer);
+    try { await speak(answer); } catch(e){ console.error('speak threw', e); }
+  } catch(e){
+    console.error('handleQuestion error', e);
+    window.showErr('handleQuestion: ' + e.message);
+  } finally {
+    setTimeout(()=>{ hideQA(); setState(personSeen ? 'listening' : 'idle'); busy = false; }, 3000);
+  }
+}
+
+async function speak(text){
+  if (!OPENAI_KEY || !text) return;
+  setState('speaking');
+  let url = null;
+  try{
+    const r = await fetch('https://api.openai.com/v1/audio/speech', {
+      method:'POST',
+      headers:{'Authorization':`Bearer ${OPENAI_KEY}`,'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'gpt-4o-mini-tts', voice:'sage', input: text, response_format:'mp3' }),
+    });
+    if (!r.ok){ console.warn('tts http', r.status); return; }
+    const blob = await r.blob();
+    url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    await new Promise((resolve)=>{
+      let done = false;
+      const finish = ()=>{ if(done) return; done = true; resolve(); };
+      audio.onended = finish;
+      audio.onerror = finish;
+      const p = audio.play();
+      if (p && p.catch) p.catch((err)=>{ console.warn('audio.play rejected', err); finish(); });
+    });
+  } catch(e){ console.error('tts failed', e); window.showErr('TTS: '+e.message); }
+  finally { if (url) URL.revokeObjectURL(url); }
+}
+
+// text input
+const askForm = document.getElementById('askform');
+const askInput = document.getElementById('askinput');
+askForm.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const text = askInput.value.trim();
+  if (!text) return;
+  askInput.value = '';
+  handleQuestion(text);
+});
+
+window.nexbot = { setState, handleQuestion, speak };
+</script>
+</body>
+</html>
