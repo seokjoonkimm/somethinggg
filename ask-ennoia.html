@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<title>엔노이아에게 질문하기</title>
+<style>
+  @font-face{font-family:'Pretendard';src:url('Pretendard-Medium.otf') format('opentype');font-weight:500}
+  @font-face{font-family:'Pretendard';src:url('Pretendard-SemiBold.otf') format('opentype');font-weight:600}
+
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{height:100%;overflow:hidden}
+  body{height:100%;height:100dvh;font-family:'Pretendard',system-ui,-apple-system,sans-serif;background:#fff;color:#222;overflow:hidden;touch-action:manipulation;
+    opacity:0;filter:blur(20px);animation:page-enter 0.8s ease forwards}
+  @keyframes page-enter{to{opacity:1;filter:blur(0)}}
+
+  /* ── Intro stagger ── */
+  .guide-label{opacity:0;transform:translateY(12px);animation:intro-up 0.8s ease 1.0s forwards}
+  .example-area{opacity:0;transform:translateY(12px);animation:intro-up 0.8s ease 1.3s forwards}
+  .cta-area{opacity:0;transform:translateY(12px);animation:intro-up 0.8s ease 1.6s forwards}
+  @keyframes intro-up{to{opacity:1;transform:translateY(0)}}
+
+  /* ── Layout ── */
+  .container{display:flex;flex-direction:column;height:100%;padding:0 24px;padding-top:env(safe-area-inset-top);transition:opacity .7s ease,filter .7s ease;position:relative;z-index:10}
+  body.compose .container{opacity:0;filter:blur(20px);pointer-events:none}
+
+  /* ── CTA button — Liquid Glass ── */
+  .cta-area{padding:0 16px max(32px,env(safe-area-inset-bottom));display:flex;justify-content:center;z-index:70;transition:opacity .5s ease,filter .5s ease;width:100%}
+  body.compose .cta-area{opacity:0;filter:blur(20px);pointer-events:none}
+  .cta-btn{
+    position:relative;width:100%;padding:20px 0;border-radius:9999px;border:none;
+    background:rgba(255,255,255,.2);
+    backdrop-filter:blur(60px) saturate(2.5) brightness(1.1) contrast(1.1);
+    -webkit-backdrop-filter:blur(60px) saturate(2.5) brightness(1.1) contrast(1.1);
+    color:rgba(0,0,0,.6);font-family:inherit;font-size:16px;font-weight:600;
+    letter-spacing:-.02em;cursor:pointer;transition:all .3s;
+    box-shadow:0 2px 8px rgba(0,0,0,.05),0 8px 32px rgba(0,0,0,.03);overflow:hidden;
+  }
+  .cta-btn::before{
+    content:'';position:absolute;inset:0;border-radius:9999px;pointer-events:none;
+    background:radial-gradient(ellipse 70% 60% at 50% 50%,transparent 0%,transparent 45%,rgba(255,255,255,.12) 65%,rgba(255,255,255,.25) 80%,rgba(255,255,255,.35) 100%),
+    linear-gradient(180deg,rgba(255,255,255,.25) 0%,rgba(255,255,255,.08) 30%,transparent 55%);
+  }
+  .cta-btn::after{
+    content:'';position:absolute;inset:0;border-radius:9999px;pointer-events:none;
+    border:1.5px solid rgba(255,255,255,.27);
+    box-shadow:inset 0 1px 3px rgba(255,255,255,.3),inset 0 -1px 2px rgba(0,0,0,.03),inset 2px 0 4px rgba(255,255,255,.07),inset -2px 0 4px rgba(255,255,255,.07),0 0 8px rgba(255,255,255,.15);
+  }
+  .cta-btn:active{transform:scale(.97)}
+
+  /* ── Guide text ── */
+  .text-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;gap:28px;margin-top:-2vh}
+  .guide-label{font-size:17px;font-weight:600;letter-spacing:-.02em;color:rgba(34,34,34,.4);text-align:center}
+
+  /* ── Rolling questions ── */
+  .example-area{position:relative;width:88%;min-height:140px;display:flex;align-items:flex-start;justify-content:center}
+  .txt-slide{position:absolute;top:0;font-size:30px;font-weight:600;line-height:1.5;letter-spacing:-.04em;white-space:pre-line;text-align:center;width:100%;opacity:0;filter:blur(8px);transition:opacity 1.5s ease,filter 1.5s ease}
+  .txt-slide.active{opacity:1;filter:blur(0)}
+  .txt-slide.exit{opacity:0;filter:blur(8px)}
+  .txt-slide .txt-base{color:rgba(34,34,34,.85)}
+  .txt-slide .txt-glow{
+    position:absolute;top:0;left:0;width:100%;white-space:pre-line;text-align:center;
+    opacity:0;transition:opacity 2s ease;color:transparent;-webkit-text-fill-color:transparent;
+  }
+  .txt-slide.glow .txt-glow{opacity:.45}
+  .txt-slide:nth-child(1) .txt-glow{background-image:conic-gradient(from 0deg at 50% 50%,#FF5C00,#FF8EFF,#00ADFF,#8364FF,#FF5C00);background-size:150% 150%;-webkit-background-clip:text;background-clip:text;animation:gflow 8s linear infinite;-webkit-mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%);mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%)}
+  .txt-slide:nth-child(2) .txt-glow{background-image:conic-gradient(from 72deg at 50% 50%,#00ADFF,#8364FF,#FF5C00,#FF8EFF,#00ADFF);background-size:150% 150%;-webkit-background-clip:text;background-clip:text;animation:gflow 8s linear infinite;-webkit-mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%);mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%)}
+  .txt-slide:nth-child(3) .txt-glow{background-image:conic-gradient(from 144deg at 50% 50%,#8364FF,#FF5C00,#FF8EFF,#00ADFF,#8364FF);background-size:150% 150%;-webkit-background-clip:text;background-clip:text;animation:gflow 8s linear infinite;-webkit-mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%);mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%)}
+  .txt-slide:nth-child(4) .txt-glow{background-image:conic-gradient(from 216deg at 50% 50%,#FF8EFF,#00ADFF,#8364FF,#FF5C00,#FF8EFF);background-size:150% 150%;-webkit-background-clip:text;background-clip:text;animation:gflow 8s linear infinite;-webkit-mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%);mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%)}
+  .txt-slide:nth-child(5) .txt-glow{background-image:conic-gradient(from 288deg at 50% 50%,#FF5C00,#00ADFF,#FF8EFF,#8364FF,#FF5C00);background-size:150% 150%;-webkit-background-clip:text;background-clip:text;animation:gflow 8s linear infinite;-webkit-mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%);mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%)}
+  @keyframes gflow{0%{background-position:0% 50%}25%{background-position:100% 25%}50%{background-position:100% 50%}75%{background-position:0% 75%}100%{background-position:0% 50%}}
+
+  /* ── Canvas / Bloom / White orb layers ── */
+  #cubeCanvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;transition:opacity .8s ease;opacity:0;animation:canvas-in 1.8s ease forwards}
+  @keyframes canvas-in{0%{opacity:0}30%{opacity:1}100%{opacity:1}}
+  body.compose #cubeCanvas{opacity:.35}
+
+  #bloomLayer{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;
+    background:transparent;backdrop-filter:blur(35px) saturate(1.3) brightness(1.1);-webkit-backdrop-filter:blur(35px) saturate(1.3) brightness(1.1);
+    opacity:0;animation:bloom-in 1.5s ease .8s forwards}
+  @keyframes bloom-in{to{opacity:1}}
+
+  #whiteOrb{position:fixed;left:50%;top:45%;transform:translate(-50%,-50%) scale(.8);width:160vw;height:320vw;border-radius:50%;pointer-events:none;z-index:5;
+    background:radial-gradient(circle,rgba(255,255,255,1) 0%,rgba(255,255,255,.91) 25%,rgba(255,255,255,.5) 50%,rgba(255,255,255,0) 70%);
+    opacity:0;animation:wh-orb-in 1.5s ease 1.3s forwards}
+  @keyframes wh-orb-in{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+  @keyframes wh-breathe{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.12)}100%{transform:translate(-50%,-50%) scale(1)}}
+
+  /* ── Compose overlay ── */
+  .compose-overlay{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .7s ease}
+  body.compose .compose-overlay{opacity:1;pointer-events:auto}
+
+  .typing-display{font-size:26px;font-weight:600;line-height:1.6;letter-spacing:-.04em;text-align:center;width:85%;min-height:80px;position:relative;margin-bottom:80px;word-break:break-word;overflow-wrap:break-word;color:rgba(34,34,34,.85)}
+  .typing-display .char{display:inline;color:rgba(34,34,34,.85)}
+  @keyframes type-pulse{0%{color:rgba(131,100,255,.7)}100%{color:rgba(34,34,34,.85)}}
+  .typing-display .cursor{display:inline-block;width:1.5px;height:1em;background:rgba(131,100,255,.5);margin-left:2px;animation:cursor-blink 1.2s ease-in-out infinite;vertical-align:text-bottom}
+  @keyframes cursor-blink{0%,100%{opacity:.3}50%{opacity:.8}}
+
+  .hidden-input{position:fixed;top:-9999px;left:-9999px;opacity:0}
+
+  /* ── Back button ── */
+  .back-btn{position:fixed;top:max(16px,env(safe-area-inset-top));left:16px;z-index:80;width:44px;height:44px;border:none;background:none;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .5s ease;display:flex;align-items:center;justify-content:center}
+  body.compose .back-btn{opacity:1;pointer-events:auto}
+  .back-btn svg{width:24px;height:24px;stroke:rgba(0,0,0,.4);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .back-btn:active{transform:scale(.9)}
+
+  /* ── Submit button ── */
+  .compose-controls{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;z-index:80;padding:0 16px max(32px,env(safe-area-inset-bottom));opacity:0;pointer-events:none;transition:opacity .5s ease}
+  body.compose .compose-controls{opacity:1;pointer-events:auto}
+  .compose-btn-submit{
+    position:relative;width:100%;padding:20px 0;border-radius:9999px;border:none;
+    background:linear-gradient(135deg,rgba(255,92,0,.3),rgba(255,142,255,.3),rgba(0,173,255,.3),rgba(131,100,255,.3));
+    background-size:300% 300%;animation:gflow 6s ease infinite;
+    backdrop-filter:blur(60px) saturate(2.5) brightness(1.05);-webkit-backdrop-filter:blur(60px) saturate(2.5) brightness(1.05);
+    color:rgba(0,0,0,.75);font-family:inherit;font-size:16px;font-weight:600;letter-spacing:-.02em;cursor:pointer;transition:all .3s;
+    box-shadow:0 2px 8px rgba(0,0,0,.05),0 8px 32px rgba(0,0,0,.03);overflow:hidden;
+  }
+  .compose-btn-submit::before{
+    content:'';position:absolute;inset:0;border-radius:9999px;pointer-events:none;
+    background:radial-gradient(ellipse 70% 60% at 50% 50%,transparent 0%,transparent 45%,rgba(255,255,255,.12) 65%,rgba(255,255,255,.25) 80%,rgba(255,255,255,.35) 100%),
+    linear-gradient(180deg,rgba(255,255,255,.25) 0%,rgba(255,255,255,.08) 30%,transparent 55%);
+  }
+  .compose-btn-submit::after{
+    content:'';position:absolute;inset:0;border-radius:9999px;pointer-events:none;
+    border:1.5px solid rgba(255,255,255,.27);
+    box-shadow:inset 0 1px 3px rgba(255,255,255,.3),inset 0 -1px 2px rgba(0,0,0,.03),inset 2px 0 4px rgba(255,255,255,.07),inset -2px 0 4px rgba(255,255,255,.07),0 0 8px rgba(255,255,255,.15);
+  }
+  .compose-btn-submit:active{transform:scale(.97)}
+  .compose-btn-submit:disabled{opacity:.2;pointer-events:none;animation:none}
+
+  /* ── Toast ── */
+  .sent-toast{width:85%;min-height:80px;opacity:0;pointer-events:none;z-index:100;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .8s ease,filter .8s ease,transform .8s ease;filter:blur(8px);transform:translateY(24px)}
+  .sent-toast.show{opacity:1;filter:blur(0);transform:translateY(0)}
+  .sent-toast.exit{opacity:0;filter:blur(8px);transform:translateY(-24px)}
+  .sent-toast .toast-main{position:relative;font-size:30px;font-weight:600;line-height:1.5;letter-spacing:-.04em;white-space:pre-line;color:rgba(34,34,34,.85)}
+  .sent-toast .toast-glow{position:absolute;top:0;left:0;width:100%;white-space:pre-line;text-align:center;color:transparent;-webkit-text-fill-color:transparent;background-image:conic-gradient(from 0deg at 50% 50%,#FF5C00,#FF8EFF,#00ADFF,#8364FF,#FF5C00);background-size:150% 150%;-webkit-background-clip:text;background-clip:text;animation:gflow 8s linear infinite;-webkit-mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%);mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%);opacity:.45;pointer-events:none}
+  .sent-toast .toast-sub{font-size:16px;font-weight:600;line-height:1.6;letter-spacing:-.02em;color:rgba(34,34,34,.35)}
+</style>
+</head>
+<body>
+
+<canvas id="cubeCanvas"></canvas>
+<div id="bloomLayer"></div>
+<div id="whiteOrb"></div>
+
+<div class="container">
+  <div class="text-area">
+    <div class="guide-label">엔노이아에게 질문해 보세요</div>
+    <div class="example-area">
+      <div class="txt-slide active"><span class="txt-base">&ldquo;우리의 일은
+AI에게 대체될 수 있을까?&rdquo;</span><div class="txt-glow">&ldquo;우리의 일은
+AI에게 대체될 수 있을까?&rdquo;</div></div>
+      <div class="txt-slide"><span class="txt-base">&ldquo;하이파이브 2026의
+핵심 주제는 뭐야?&rdquo;</span><div class="txt-glow">&ldquo;하이파이브 2026의
+핵심 주제는 뭐야?&rdquo;</div></div>
+      <div class="txt-slide"><span class="txt-base">&ldquo;원티드랩의
+AX 문화가 궁금해&rdquo;</span><div class="txt-glow">&ldquo;원티드랩의
+AX 문화가 궁금해&rdquo;</div></div>
+      <div class="txt-slide"><span class="txt-base">&ldquo;3년 차 브랜드디자이너에게
+이직 꿀팁 알려줘&rdquo;</span><div class="txt-glow">&ldquo;3년 차 브랜드디자이너에게
+이직 꿀팁 알려줘&rdquo;</div></div>
+      <div class="txt-slide"><span class="txt-base">&ldquo;엔노이아는
+무슨 뜻이야?&rdquo;</span><div class="txt-glow">&ldquo;엔노이아는
+무슨 뜻이야?&rdquo;</div></div>
+    </div>
+  </div>
+  <div class="cta-area">
+    <button class="cta-btn" id="ctaBtn">엔노이아에게 질문하기</button>
+  </div>
+</div>
+
+<button class="back-btn" id="cancelBtn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+
+<div class="compose-overlay">
+  <div class="typing-display" id="typingDisplay"><span class="cursor"></span></div>
+  <div class="sent-toast" id="sentToast"></div>
+  <textarea class="hidden-input" id="hiddenInput" maxlength="200"></textarea>
+</div>
+
+<div class="compose-controls">
+  <button class="compose-btn-submit" id="submitBtn" disabled>보내기</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script>
+/* ── Firebase ── */
+const ROOM_ID = new URLSearchParams(location.search).get('room') || 'nexbot-live';
+firebase.initializeApp({
+  apiKey:"AIzaSyDYMrkbYHkUmAqMfvw8QLOXrzoNe3IEpCQ",
+  authDomain:"somethinggg-c7f23.firebaseapp.com",
+  databaseURL:"https://somethinggg-c7f23-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"somethinggg-c7f23"
+});
+const qRef = firebase.database().ref(`rooms/${ROOM_ID}/questions`);
+
+/* ── DOM refs ── */
+const ctaBtn = document.getElementById('ctaBtn');
+const hiddenInput = document.getElementById('hiddenInput');
+const typingDisplay = document.getElementById('typingDisplay');
+const cancelBtn = document.getElementById('cancelBtn');
+const submitBtn = document.getElementById('submitBtn');
+const sentToast = document.getElementById('sentToast');
+const composeControls = document.querySelector('.compose-controls');
+
+let isComposing = false, prevLen = 0, isIME = false;
+
+/* ── Keyboard handling (mobile) ── */
+if (window.visualViewport) {
+  const overlay = document.querySelector('.compose-overlay');
+  window.visualViewport.addEventListener('resize', () => {
+    if (!isComposing) return;
+    const vvH = window.visualViewport.height;
+    const fullH = window.innerHeight;
+    const kbH = fullH - vvH;
+    if (kbH > 100) {
+      overlay.style.height = vvH + 'px';
+      composeControls.style.bottom = kbH + 'px';
+    } else {
+      overlay.style.height = '';
+      composeControls.style.bottom = '0';
+    }
+  });
+}
+
+/* ── Compose mode ── */
+function enterCompose() {
+  isComposing = true;
+  document.body.classList.add('compose');
+  hiddenInput.value = '';
+  prevLen = 0;
+  typingDisplay.innerHTML = '<span class="cursor"></span>';
+  typingDisplay.style.cssText = '';
+  sentToast.classList.remove('show','exit');
+  sentToast.innerHTML = '';
+  submitBtn.disabled = true;
+  composeControls.style.cssText = '';
+  setTimeout(() => hiddenInput.focus(), 500);
+}
+function exitCompose() {
+  isComposing = false;
+  hiddenInput.blur();
+  document.body.classList.remove('compose');
+  // Reset after overlay transition
+  setTimeout(() => {
+    typingDisplay.style.cssText = '';
+    typingDisplay.innerHTML = '<span class="cursor"></span>';
+    sentToast.classList.remove('show','exit');
+    sentToast.innerHTML = '';
+    hiddenInput.value = '';
+    prevLen = 0;
+    submitBtn.disabled = true;
+    composeControls.style.cssText = '';
+  }, 700);
+}
+
+ctaBtn.addEventListener('click', enterCompose);
+cancelBtn.addEventListener('click', exitCompose);
+
+/* ── Typing display ── */
+hiddenInput.addEventListener('input', () => {
+  const text = hiddenInput.value;
+  const newLen = text.length;
+  let html = '';
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i] === '\n' ? '<br>' : (text[i] === ' ' ? ' ' : text[i].replace(/</g,'&lt;'));
+    const pulse = (i >= prevLen && newLen > prevLen) ? ' style="animation:type-pulse .6s ease forwards"' : '';
+    html += `<span class="char"${pulse}>${ch}</span>`;
+  }
+  html += '<span class="cursor"></span>';
+  typingDisplay.innerHTML = html;
+  prevLen = newLen;
+  submitBtn.disabled = !text.trim();
+});
+
+hiddenInput.addEventListener('blur', () => {
+  if (isComposing) setTimeout(() => hiddenInput.focus(), 50);
+});
+hiddenInput.addEventListener('compositionstart', () => { isIME = true; });
+hiddenInput.addEventListener('compositionend', () => { isIME = false; });
+hiddenInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey && !isIME) { e.preventDefault(); send(); }
+});
+
+/* ── Toast system ── */
+function showToast(main, sub, duration, cb) {
+  typingDisplay.style.transition = 'opacity .5s ease,transform .5s ease,filter .5s ease';
+  typingDisplay.style.opacity = '0';
+  typingDisplay.style.transform = 'translateY(-24px)';
+  typingDisplay.style.filter = 'blur(8px)';
+  composeControls.style.transition = 'opacity .5s ease';
+  composeControls.style.opacity = '0';
+  composeControls.style.pointerEvents = 'none';
+  setTimeout(() => {
+    typingDisplay.style.display = 'none';
+    sentToast.innerHTML = `<div class="toast-main">${main}<div class="toast-glow">${main}</div></div>${sub ? `<div class="toast-sub">${sub}</div>` : ''}`;
+    sentToast.classList.add('show');
+  }, 500);
+  setTimeout(() => cb(), 500 + duration);
+}
+
+function toastThenRestore() {
+  sentToast.classList.add('exit');
+  setTimeout(() => {
+    isComposing = true;
+    sentToast.classList.remove('show','exit');
+    sentToast.innerHTML = '';
+    typingDisplay.style.cssText = '';
+    typingDisplay.innerHTML = '<span class="cursor"></span>';
+    composeControls.style.cssText = '';
+    setTimeout(() => hiddenInput.focus(), 100);
+  }, 800);
+}
+
+/* ── Filters ── */
+const BLOCKED_WORDS = [
+  '씨발','시발','씨빨','씨팔','시팔','씨바','시바','ㅅㅂ','ㅆㅂ','ㅅㅃ','ssibal','sibal',
+  '개새끼','새끼','ㅅㄲ','샊기','색기','쌔끼',
+  '병신','ㅂㅅ','byungshin','병싄','벼신',
+  '지랄','ㅈㄹ','지럴','짓알',
+  '닥쳐','꺼져','닥치','까져',
+  '미친놈','미친년','ㅁㅊ','미친','michin',
+  '또라이','돌아이','또라히',
+  '찐따','찐다','ㅉㄸ',
+  '등신','멍청이','멍청','얼간이',
+  '개년','시발놈','썅','ㅆ','개소리','개같',
+  '좆','ㅈ같','존나','졸라','ㅈㄴ','죤나','좃나',
+  '엿먹','엿이나','꼴값','느금마','느금','니애미','니엄마','니미','ㄴㅁ',
+  'fuck','shit','damn','bitch','asshole','bastard','dick','pussy','wtf','stfu','cunt','whore',
+  '섹스','야동','포르노','자위','성관계','성행위','떡치','보지','자지',
+  '앙기모띠','앙기모','앙기','기모띠','kimochi','야하','야해','변태','헨타이',
+  '강간','성폭행','성추행','몰카','도촬','음란','야설',
+  'sex','porn','nude','naked','hentai','xxx','nsfw','erotic',
+  '게이','레즈','트랜스젠더','호모','동성애','이성애','양성애','성소수자',
+  '흑인','백인','황인','인종','장애인','난민','조선족',
+  '한남','한녀','페미','꼴페미','메갈','일베','워마드','남혐','여혐',
+  '틀딱','꼰대','급식충','맘충','한남충','김치녀','된장녀',
+  '좌파','우파','빨갱이','수꼴','친일','종북','탈북','간첩',
+];
+const CHO = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+const BLOCKED_CHO = ['ㅅㅂ','ㅆㅂ','ㅂㅅ','ㅈㄹ','ㅁㅊ','ㅅㄲ','ㅈㄴ','ㅉㄸ','ㄴㅁ','ㅈㄱ'];
+
+function toChosung(text) {
+  let r = '';
+  for (const c of text) {
+    const code = c.charCodeAt(0);
+    if (code >= 0xAC00 && code < 0xD7A4) r += CHO[Math.floor((code - 0xAC00) / 588)];
+    else if (code >= 0x3131 && code <= 0x314E) r += c;
+    else r += c;
+  }
+  return r;
+}
+
+function isJamoOnly(text) {
+  // 공백 제거 후 전체가 자음(ㄱ-ㅎ) 또는 모음(ㅏ-ㅣ)으로만 구성
+  const stripped = text.replace(/\s/g, '');
+  if (!stripped) return false;
+  for (const c of stripped) {
+    const code = c.charCodeAt(0);
+    if (code < 0x3131 || code > 0x3163) return false; // ㄱ(0x3131) ~ ㅣ(0x3163) 범위 밖이면 일반 글자
+  }
+  return true;
+}
+
+function containsBlocked(text) {
+  const lower = text.toLowerCase().replace(/\s/g,'');
+  if (BLOCKED_WORDS.some(w => lower.includes(w.toLowerCase()))) return true;
+  const cho = toChosung(text.replace(/\s/g,''));
+  if (BLOCKED_CHO.some(p => cho.includes(p))) return true;
+  return false;
+}
+
+/* ── Send ── */
+async function send() {
+  const text = hiddenInput.value.trim();
+  if (!text) return;
+  // 2글자 이하 필터
+  if (text.replace(/\s/g,'').length <= 2) {
+    isComposing = false; hiddenInput.blur(); hiddenInput.value = ''; prevLen = 0;
+    typingDisplay.innerHTML = '<span class="cursor"></span>'; submitBtn.disabled = true;
+    showToast('질문에만 답변할 수 있어요', null, 2500, toastThenRestore); return;
+  }
+  // 초성/자모만으로 이루어진 입력 필터
+  if (isJamoOnly(text)) {
+    isComposing = false; hiddenInput.blur(); hiddenInput.value = ''; prevLen = 0;
+    typingDisplay.innerHTML = '<span class="cursor"></span>'; submitBtn.disabled = true;
+    showToast('질문에만 답변할 수 있어요', null, 2500, toastThenRestore); return;
+  }
+  // 비속어 필터
+  if (containsBlocked(text)) {
+    isComposing = false; hiddenInput.blur(); hiddenInput.value = ''; prevLen = 0;
+    typingDisplay.innerHTML = '<span class="cursor"></span>'; submitBtn.disabled = true;
+    showToast('부적절한 질문은<br>답변할 수 없어요', null, 2500, toastThenRestore); return;
+  }
+  // 전송
+  isComposing = false;
+  hiddenInput.blur();
+  try { await qRef.push({ text, ts: Date.now() }); }
+  catch(e) { console.error('Firebase send error:', e); }
+  showToast('전송되었어요', '질문이 많을 시 답변이 늦어질 수도 있어요.<br>부적절한 질문은 답변할 수 없어요.', 3000, () => {
+    sentToast.classList.add('exit');
+    setTimeout(() => {
+      isComposing = false;
+      document.body.classList.remove('compose');
+      setTimeout(() => {
+        typingDisplay.style.cssText = '';
+        typingDisplay.innerHTML = '<span class="cursor"></span>';
+        sentToast.classList.remove('show','exit');
+        sentToast.innerHTML = '';
+        hiddenInput.value = '';
+        prevLen = 0;
+        submitBtn.disabled = true;
+        composeControls.style.cssText = '';
+      }, 700);
+    }, 800);
+  });
+}
+submitBtn.addEventListener('click', send);
+
+/* ── Rotating text ── */
+{
+  const slides = document.querySelectorAll('.txt-slide');
+  let cur = 0, gt = setTimeout(() => slides[0].classList.add('glow'), 1000);
+
+  const whiteOrb = document.getElementById('whiteOrb');
+  whiteOrb.addEventListener('animationend', () => {
+    whiteOrb.style.opacity = '1';
+    whiteOrb.style.transform = 'translate(-50%,-50%) scale(1)';
+    whiteOrb.style.animation = 'wh-breathe 8s ease-in-out infinite';
+  });
+
+  setInterval(() => {
+    if (gt) { clearTimeout(gt); gt = null; }
+    slides[cur].classList.remove('active','glow');
+    slides[cur].classList.add('exit');
+    const prev = cur;
+    let next; do { next = Math.floor(Math.random() * slides.length); } while (next === cur);
+    cur = next;
+    setTimeout(() => {
+      slides[prev].classList.remove('exit');
+      slides[cur].classList.add('active');
+      gt = setTimeout(() => slides[cur].classList.add('glow'), 1000);
+    }, 1200);
+  }, 5000);
+}
+</script>
+
+<!-- Three.js sphere -->
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+
+const canvas = document.getElementById('cubeCanvas');
+const renderer = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true});
+renderer.setClearColor(0xffffff, 0);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 50);
+camera.position.set(0, 0, 6.9);
+
+// Lights (consolidated)
+scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+[[2,3,4,1.2],[-3,1,2,0.5],[0,0,-4,2],[-3,0,-3,1],[3,0,-3,1]].forEach(([x,y,z,i])=>{
+  const l=new THREE.DirectionalLight(x===-3&&y===1?0xaabbff:0xffffff,i);l.position.set(x,y,z);scene.add(l);
+});
+
+// Env map
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envS = new THREE.Scene();
+envS.add(new THREE.Mesh(new THREE.SphereGeometry(10,16,16), new THREE.ShaderMaterial({
+  side:THREE.BackSide, vertexShader:`varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`varying vec3 vP;void main(){float y=normalize(vP).y;gl_FragColor=vec4(mix(vec3(.92,.9,.88),vec3(.88,.9,.95),y*.5+.5),1.);}`
+})));
+scene.environment = pmrem.fromScene(envS,0,.1,100).texture;
+
+function getSize(){
+  const a=innerWidth/innerHeight;
+  return a<.55?{h:7}:a<.65?{h:6.5}:{h:5.5};
+}
+
+let sz = getSize();
+const orbU = {
+  uTime:{value:0}, uStartup:{value:0},
+  uColor1:{value:new THREE.Color(0xFF5C00)}, uColor2:{value:new THREE.Color(0xFF8EFF)},
+  uColor3:{value:new THREE.Color(0x00ADFF)}, uColor4:{value:new THREE.Color(0x8364FF)},
+  uOrbSpeed:{value:.5}, uCubeH:{value:sz.h}
+};
+
+const mat = new THREE.MeshPhysicalMaterial({
+  color:0x000000, metalness:0, roughness:1, clearcoat:0, reflectivity:0,
+  ior:1, envMapIntensity:0, specularIntensity:0, specularColor:new THREE.Color(0),
+  transparent:true, opacity:1
+});
+
+mat.onBeforeCompile = sh => {
+  Object.entries(orbU).forEach(([k,v])=>sh.uniforms[k]=v);
+  sh.vertexShader = 'varying vec3 vWP;\n'+sh.vertexShader;
+  sh.vertexShader = sh.vertexShader.replace('#include <worldpos_vertex>',
+    `#include <worldpos_vertex>\nvWP=(modelMatrix*vec4(position,1.)).xyz;`);
+  sh.fragmentShader = `uniform float uTime,uStartup,uOrbSpeed,uCubeH;
+uniform vec3 uColor1,uColor2,uColor3,uColor4;
+varying vec3 vWP;\n`+sh.fragmentShader;
+  sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>',
+    `#include <dithering_fragment>
+{
+  vec3 dk=vec3(.003,.003,.008);
+  vec3 rfl=max(gl_FragColor.rgb-dk,0.);
+  vec3 nV=normalize(vNormal),vD=normalize(vViewPosition);
+  float fr=1.-max(dot(nV,vD),0.),ra=.2+pow(fr,3.)*.75;
+  gl_FragColor.rgb=dk+rfl*ra;
+  float t=uTime*uOrbSpeed,hH=uCubeH*.5,sR=hH;
+  float br=sin(t*.3)*.5+.5,bSp=mix(.35,.7,br*br),sp=bSp*uStartup;
+  float cx=(sin(t*.19)*.25+cos(t*.11)*.15)*sR*.3*uStartup;
+  float cy=(cos(t*.15)*.2+sin(t*.09)*.1)*sR*.3*uStartup;
+  float oD=sR*.4*uStartup,spn=(1.-uStartup)*3.14159,wb=sp*sR*.3;
+  float a1=spn,a2=spn+1.5708,a3=spn+3.14159,a4=spn+4.71239;
+  float ox1=cx+oD*cos(a1)+sin(t*.53)*wb,oy1=cy+oD*sin(a1)+cos(t*.41)*wb*.7;
+  vec3 o1=vec3(ox1,oy1,sqrt(max(sR*sR-ox1*ox1-oy1*oy1,.01)));
+  float ox2=cx+oD*cos(a2)+sin(t*.47)*wb*.9,oy2=cy+oD*sin(a2)+cos(t*.57)*wb*.8;
+  vec3 o2=vec3(ox2,oy2,sqrt(max(sR*sR-ox2*ox2-oy2*oy2,.01)));
+  float ox3=cx+oD*cos(a3)+cos(t*.61)*wb,oy3=cy+oD*sin(a3)+sin(t*.37)*wb*.7;
+  vec3 o3=vec3(ox3,oy3,sqrt(max(sR*sR-ox3*ox3-oy3*oy3,.01)));
+  float ox4=cx+oD*cos(a4)+cos(t*.43)*wb*.85,oy4=cy+oD*sin(a4)+sin(t*.51)*wb*.75;
+  vec3 o4=vec3(ox4,oy4,sqrt(max(sR*sR-ox4*ox4-oy4*oy4,.01)));
+  float b1=hH*.07*(1.+.15*sin(t*.29)),b2=hH*.061*(1.+.14*sin(t*.37+1.5));
+  float b3=hH*.066*(1.+.12*sin(t*.43+3.2)),b4=hH*.064*(1.+.16*sin(t*.33+4.8));
+  float f1=exp(-dot(o1-vWP,o1-vWP)/(20.*b1*b1)),f2=exp(-dot(o2-vWP,o2-vWP)/(20.*b2*b2));
+  float f3=exp(-dot(o3-vWP,o3-vWP)/(20.*b3*b3)),f4=exp(-dot(o4-vWP,o4-vWP)/(20.*b4*b4));
+  float fc=dot(nV,vec3(0,0,1)),mk=.4+smoothstep(-.2,.2,fc)*.6;
+  float p1=.85+.1*sin(t*.41),p2=.85+.1*sin(t*.37+1.7),p3=.85+.1*sin(t*.47+3.5),p4=.85+.1*sin(t*.31+5.2);
+  float i1=f1*p1*mk,i2=f2*p2*mk,i3=f3*p3*mk,i4=f4*p4*mk;
+  vec3 oL=uColor1*1.6*i1+uColor2*1.6*i2+uColor3*1.6*i3+uColor4*1.6*i4;
+  oL+=uColor1*pow(i1,3.)*1.2+uColor2*pow(i2,3.)*1.2+uColor3*pow(i3,3.)*1.2+uColor4*pow(i4,3.)*1.2;
+  float tI=min(i1+i2+i3+i4,1.);
+  gl_FragColor.rgb=vec3(1.)*(1.-tI)+oL;
+  gl_FragColor.a=tI;
+}`);
+};
+
+const cube = new THREE.Mesh(new THREE.SphereGeometry(sz.h*.5,32,32), mat);
+cube.scale.set(1.5,1.5,1.5);
+scene.add(cube);
+
+window.addEventListener('resize', () => {
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+  const ns=getSize();
+  if(ns.h!==sz.h){sz=ns;cube.geometry.dispose();cube.geometry=new THREE.SphereGeometry(sz.h*.5,32,32);orbU.uCubeH.value=sz.h;}
+});
+
+const clock=new THREE.Clock();
+const FI=1000/30;
+let lf=0;
+(function anim(now){
+  requestAnimationFrame(anim);
+  if(now-lf<FI)return;
+  lf=now;
+  const dt=clock.getElapsedTime();
+  orbU.uTime.value=dt;
+  const sr=Math.min(dt/1.8,1),se=1-Math.pow(1-sr,2.5);
+  orbU.uStartup.value=se;
+  const s=1.5-.5*se;
+  cube.scale.set(s,s,s);
+  cube.rotation.y=dt*.05;
+  cube.rotation.x=Math.sin(dt*.04)*.08;
+  renderer.render(scene,camera);
+})(0);
+</script>
+</body>
+</html>
