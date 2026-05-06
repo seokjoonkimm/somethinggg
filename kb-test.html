@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<title>iOS Keyboard Test</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,sans-serif;padding:40px 20px;padding-top:calc(env(safe-area-inset-top) + 40px)}
+h2{font-size:18px;margin-bottom:10px;color:#333}
+p{font-size:14px;color:#888;margin-bottom:20px}
+.test{margin-bottom:40px;padding:20px;border:1px solid #ddd;border-radius:12px}
+.result{margin-top:10px;font-size:14px;color:green;min-height:20px}
+
+/* Test 1: label for textarea */
+.test-btn{
+  display:block;width:100%;padding:18px;border-radius:9999px;border:none;
+  background:#f0f0f0;font-size:16px;font-weight:600;text-align:center;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+textarea.test-input{position:fixed;top:-9999px;left:0;opacity:0;width:1px;height:1px;font-size:16px}
+
+/* Test 2: visible input */
+.visible-input{width:100%;padding:18px;border:2px solid #ddd;border-radius:12px;font-size:16px;text-align:center;-webkit-appearance:none}
+
+/* Test 3: contenteditable */
+.editable-div{width:100%;min-height:56px;padding:18px;border:2px solid #ddd;border-radius:12px;font-size:16px;text-align:center;outline:none;-webkit-user-select:text}
+</style>
+</head>
+<body>
+
+<h1 style="font-size:22px;margin-bottom:30px">iOS 키보드 테스트</h1>
+
+<!-- TEST 1: label + hidden textarea -->
+<div class="test">
+  <h2>방법 1: label for + textarea</h2>
+  <p>label을 탭하면 textarea에 네이티브 포커스</p>
+  <label class="test-btn" for="test1">여기를 탭하세요</label>
+  <textarea id="test1" class="test-input" inputmode="text" maxlength="100"></textarea>
+  <div class="result" id="r1"></div>
+</div>
+
+<!-- TEST 2: visible input -->
+<div class="test">
+  <h2>방법 2: 보이는 input 직접 탭</h2>
+  <p>input을 직접 탭</p>
+  <input type="text" class="visible-input" id="test2" placeholder="여기를 탭하세요" inputmode="text"/>
+  <div class="result" id="r2"></div>
+</div>
+
+<!-- TEST 3: contenteditable div -->
+<div class="test">
+  <h2>방법 3: contenteditable div</h2>
+  <p>div를 직접 탭</p>
+  <div class="editable-div" id="test3" contenteditable="true" inputmode="text">여기를 탭하세요</div>
+  <div class="result" id="r3"></div>
+</div>
+
+<!-- TEST 4: button + programmatic focus -->
+<div class="test">
+  <h2>방법 4: 버튼 클릭 → focus()</h2>
+  <p>JS로 프로그래밍 포커스</p>
+  <button class="test-btn" id="test4btn">여기를 탭하세요</button>
+  <textarea id="test4" class="test-input" inputmode="text" maxlength="100"></textarea>
+  <div class="result" id="r4"></div>
+</div>
+
+<script>
+// Test 1
+document.getElementById('test1').addEventListener('focus', () => {
+  document.getElementById('r1').textContent = '✅ 키보드 열림!';
+});
+document.getElementById('test1').addEventListener('input', (e) => {
+  document.getElementById('r1').textContent = '✅ 입력: ' + e.target.value;
+});
+
+// Test 2
+document.getElementById('test2').addEventListener('focus', () => {
+  document.getElementById('r2').textContent = '✅ 키보드 열림!';
+});
+document.getElementById('test2').addEventListener('input', (e) => {
+  document.getElementById('r2').textContent = '✅ 입력: ' + e.target.value;
+});
+
+// Test 3
+document.getElementById('test3').addEventListener('focus', () => {
+  document.getElementById('r3').textContent = '✅ 키보드 열림!';
+});
+document.getElementById('test3').addEventListener('input', (e) => {
+  document.getElementById('r3').textContent = '✅ 입력: ' + e.target.textContent;
+});
+
+// Test 4
+document.getElementById('test4btn').addEventListener('click', () => {
+  document.getElementById('test4').focus();
+});
+document.getElementById('test4').addEventListener('focus', () => {
+  document.getElementById('r4').textContent = '✅ 키보드 열림!';
+});
+document.getElementById('test4').addEventListener('input', (e) => {
+  document.getElementById('r4').textContent = '✅ 입력: ' + e.target.value;
+});
+</script>
+</body>
+</html>

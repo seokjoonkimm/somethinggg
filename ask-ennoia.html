@@ -96,10 +96,9 @@
   .typing-display .cursor{display:inline-block;width:1.5px;height:1em;background:rgba(131,100,255,.5);margin-left:2px;animation:cursor-blink 1.2s ease-in-out infinite;vertical-align:text-bottom}
   @keyframes cursor-blink{0%,100%{opacity:.3}50%{opacity:.8}}
 
-  /* Before compose: textarea sits exactly on top of CTA button so user taps it directly → iOS opens keyboard natively */
-  .hidden-input{position:fixed;border:none;outline:none;background:transparent;font-size:16px;color:transparent;caret-color:transparent;resize:none;-webkit-appearance:none;-webkit-user-select:text;user-select:text}
-  body:not(.compose) .hidden-input{bottom:16px;left:16px;right:16px;width:calc(100% - 32px);height:64px;z-index:75;opacity:0.01;padding:20px 0;text-align:center}
-  body.compose .hidden-input{top:0;left:0;width:100%;height:100%;z-index:61;opacity:0.02;padding:40% 20% 0;text-align:center}
+  /* Hidden textarea — always offscreen visually, but never display:none (kills focus on iOS) */
+  .hidden-input{position:fixed;top:0;left:0;width:100%;height:100%;opacity:0.01;border:none;outline:none;background:transparent;font-size:16px;z-index:61;color:transparent;caret-color:transparent;resize:none;-webkit-appearance:none;-webkit-user-select:text;user-select:text;padding:40% 20% 0;text-align:center}
+  body:not(.compose) .hidden-input{pointer-events:none;z-index:-1}
 
   /* ── Back button ── */
   .back-btn{position:fixed;top:calc(env(safe-area-inset-top) + 8px);left:16px;z-index:80;width:44px;height:44px;border:none;background:none;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .5s ease;display:flex;align-items:center;justify-content:center}
@@ -168,7 +167,7 @@ AX 문화가 궁금해&rdquo;</div></div>
     </div>
   </div>
   <div class="cta-area">
-    <button class="cta-btn" id="ctaBtn">엔노이아에게 질문하기</button>
+    <label class="cta-btn" id="ctaBtn" for="hiddenInput">엔노이아에게 질문하기</label>
   </div>
 </div>
 
@@ -257,10 +256,9 @@ function exitCompose() {
   }, 700);
 }
 
-// iOS: user taps CTA area but actually taps the transparent textarea on top.
-// Keyboard opens natively. We enter compose mode on textarea focus.
+// <label for="hiddenInput"> natively focuses the textarea on tap (even on iOS Safari).
+// We enter compose mode when textarea receives focus.
 hiddenInput.addEventListener('focus', () => { if (!isComposing) enterCompose(); });
-ctaBtn.addEventListener('click', () => { hiddenInput.focus(); }); // fallback for desktop
 cancelBtn.addEventListener('click', exitCompose);
 
 /* ── Typing display ── */
