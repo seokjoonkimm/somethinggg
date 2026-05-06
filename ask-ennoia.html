@@ -10,7 +10,7 @@
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html{height:100%;overflow:hidden}
   body{height:100%;height:100dvh;font-family:'Pretendard',system-ui,-apple-system,sans-serif;background:#fff;color:#222;overflow:hidden;touch-action:manipulation;
-    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    padding:0;
     opacity:0;filter:blur(20px);animation:page-enter 0.8s ease forwards}
   @keyframes page-enter{to{opacity:1;filter:blur(0)}}
 
@@ -21,13 +21,14 @@
   @keyframes intro-up{to{opacity:1;transform:translateY(0)}}
 
   /* ── Layout ── */
-  .container{display:flex;flex-direction:column;height:100%;padding:0 24px;transition:opacity .7s ease,filter .7s ease;position:relative;z-index:10}
+  .container{display:flex;flex-direction:column;height:100%;padding:env(safe-area-inset-top) 24px 0;transition:opacity .7s ease,filter .7s ease;position:relative;z-index:10}
   body.compose .container{opacity:0;filter:blur(20px);pointer-events:none}
 
   /* ── CTA button — Liquid Glass ── */
-  .cta-area{padding:0 16px 16px;display:flex;justify-content:center;z-index:70;transition:opacity .5s ease,filter .5s ease;width:100%}
+  .cta-area{padding:0 16px calc(env(safe-area-inset-bottom) + 16px);display:flex;justify-content:center;z-index:70;transition:opacity .5s ease,filter .5s ease;width:100%}
   body.compose .cta-area{opacity:0;filter:blur(20px);pointer-events:none}
   .cta-btn{
+    display:block;text-align:center;
     position:relative;width:100%;padding:20px 0;border-radius:9999px;border:none;
     background:rgba(255,255,255,.2);
     backdrop-filter:blur(60px) saturate(2.5) brightness(1.1) contrast(1.1);
@@ -101,13 +102,13 @@
   body:not(.compose) .hidden-input{pointer-events:none;z-index:-1}
 
   /* ── Back button ── */
-  .back-btn{position:fixed;top:calc(env(safe-area-inset-top) + 8px);left:16px;z-index:80;width:44px;height:44px;border:none;background:none;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .5s ease;display:flex;align-items:center;justify-content:center}
+  .back-btn{position:fixed;top:calc(env(safe-area-inset-top) + 12px);left:calc(env(safe-area-inset-left) + 16px);z-index:80;width:44px;height:44px;border:none;background:none;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .5s ease;display:flex;align-items:center;justify-content:center}
   body.compose .back-btn{opacity:1;pointer-events:auto}
   .back-btn svg{width:24px;height:24px;stroke:rgba(0,0,0,.4);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
   .back-btn:active{transform:scale(.9)}
 
   /* ── Submit button ── */
-  .compose-controls{position:fixed;bottom:env(safe-area-inset-bottom);left:0;right:0;display:flex;justify-content:center;z-index:80;padding:0 16px 16px;opacity:0;pointer-events:none;transition:opacity .5s ease}
+  .compose-controls{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;z-index:80;padding:0 16px calc(env(safe-area-inset-bottom) + 16px);opacity:0;pointer-events:none;transition:opacity .5s ease}
   body.compose .compose-controls{opacity:1;pointer-events:auto}
   .compose-btn-submit{
     position:relative;width:100%;padding:20px 0;border-radius:9999px;border:none;
