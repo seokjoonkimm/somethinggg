@@ -10,6 +10,7 @@
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html{height:100%;overflow:hidden}
   body{height:100%;height:100dvh;font-family:'Pretendard',system-ui,-apple-system,sans-serif;background:#fff;color:#222;overflow:hidden;touch-action:manipulation;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     opacity:0;filter:blur(20px);animation:page-enter 0.8s ease forwards}
   @keyframes page-enter{to{opacity:1;filter:blur(0)}}
 
@@ -20,11 +21,11 @@
   @keyframes intro-up{to{opacity:1;transform:translateY(0)}}
 
   /* ── Layout ── */
-  .container{display:flex;flex-direction:column;height:100%;padding:0 24px;padding-top:env(safe-area-inset-top);transition:opacity .7s ease,filter .7s ease;position:relative;z-index:10}
+  .container{display:flex;flex-direction:column;height:100%;padding:0 24px;transition:opacity .7s ease,filter .7s ease;position:relative;z-index:10}
   body.compose .container{opacity:0;filter:blur(20px);pointer-events:none}
 
   /* ── CTA button — Liquid Glass ── */
-  .cta-area{padding:0 16px max(32px,env(safe-area-inset-bottom));display:flex;justify-content:center;z-index:70;transition:opacity .5s ease,filter .5s ease;width:100%}
+  .cta-area{padding:0 16px 16px;display:flex;justify-content:center;z-index:70;transition:opacity .5s ease,filter .5s ease;width:100%}
   body.compose .cta-area{opacity:0;filter:blur(20px);pointer-events:none}
   .cta-btn{
     position:relative;width:100%;padding:20px 0;border-radius:9999px;border:none;
@@ -49,11 +50,11 @@
 
   /* ── Guide text ── */
   .text-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;gap:28px;margin-top:-2vh}
-  .guide-label{font-size:17px;font-weight:600;letter-spacing:-.02em;color:rgba(34,34,34,.4);text-align:center}
+  .guide-label{font-size:clamp(14px, 4vw, 17px);font-weight:600;letter-spacing:-.02em;color:rgba(34,34,34,.4);text-align:center}
 
   /* ── Rolling questions ── */
   .example-area{position:relative;width:88%;min-height:140px;display:flex;align-items:flex-start;justify-content:center}
-  .txt-slide{position:absolute;top:0;font-size:30px;font-weight:600;line-height:1.5;letter-spacing:-.04em;white-space:pre-line;text-align:center;width:100%;opacity:0;filter:blur(8px);transition:opacity 1.5s ease,filter 1.5s ease}
+  .txt-slide{position:absolute;top:0;font-size:clamp(22px, 6.5vw, 30px);font-weight:600;line-height:1.5;letter-spacing:-.04em;white-space:pre-line;text-align:center;width:100%;opacity:0;filter:blur(8px);transition:opacity 1.5s ease,filter 1.5s ease}
   .txt-slide.active{opacity:1;filter:blur(0)}
   .txt-slide.exit{opacity:0;filter:blur(8px)}
   .txt-slide .txt-base{color:rgba(34,34,34,.85)}
@@ -89,22 +90,23 @@
   .compose-overlay{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .7s ease}
   body.compose .compose-overlay{opacity:1;pointer-events:auto}
 
-  .typing-display{font-size:26px;font-weight:600;line-height:1.6;letter-spacing:-.04em;text-align:center;width:85%;min-height:80px;position:relative;margin-bottom:80px;word-break:break-word;overflow-wrap:break-word;color:rgba(34,34,34,.85)}
+  .typing-display{font-size:clamp(20px, 5.5vw, 26px);font-weight:600;line-height:1.6;letter-spacing:-.04em;text-align:center;width:85%;min-height:80px;position:relative;margin-bottom:80px;word-break:break-word;overflow-wrap:break-word;color:rgba(34,34,34,.85)}
   .typing-display .char{display:inline;color:rgba(34,34,34,.85)}
   @keyframes type-pulse{0%{color:rgba(131,100,255,.7)}100%{color:rgba(34,34,34,.85)}}
   .typing-display .cursor{display:inline-block;width:1.5px;height:1em;background:rgba(131,100,255,.5);margin-left:2px;animation:cursor-blink 1.2s ease-in-out infinite;vertical-align:text-bottom}
   @keyframes cursor-blink{0%,100%{opacity:.3}50%{opacity:.8}}
 
-  .hidden-input{position:fixed;bottom:0;left:0;width:1px;height:1px;opacity:0.01;border:none;outline:none;background:transparent;font-size:16px;z-index:-1}
+  .hidden-input{position:fixed;top:0;left:0;width:100%;height:100%;opacity:0.02;border:none;outline:none;background:transparent;font-size:16px;z-index:61;color:transparent;caret-color:transparent;resize:none;padding:40% 20% 0;text-align:center;-webkit-appearance:none}
+  body:not(.compose) .hidden-input{pointer-events:none;z-index:-1}
 
   /* ── Back button ── */
-  .back-btn{position:fixed;top:max(16px,env(safe-area-inset-top));left:16px;z-index:80;width:44px;height:44px;border:none;background:none;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .5s ease;display:flex;align-items:center;justify-content:center}
+  .back-btn{position:fixed;top:calc(env(safe-area-inset-top) + 8px);left:16px;z-index:80;width:44px;height:44px;border:none;background:none;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .5s ease;display:flex;align-items:center;justify-content:center}
   body.compose .back-btn{opacity:1;pointer-events:auto}
   .back-btn svg{width:24px;height:24px;stroke:rgba(0,0,0,.4);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
   .back-btn:active{transform:scale(.9)}
 
   /* ── Submit button ── */
-  .compose-controls{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;z-index:80;padding:0 16px max(32px,env(safe-area-inset-bottom));opacity:0;pointer-events:none;transition:opacity .5s ease}
+  .compose-controls{position:fixed;bottom:env(safe-area-inset-bottom);left:0;right:0;display:flex;justify-content:center;z-index:80;padding:0 16px 16px;opacity:0;pointer-events:none;transition:opacity .5s ease}
   body.compose .compose-controls{opacity:1;pointer-events:auto}
   .compose-btn-submit{
     position:relative;width:100%;padding:20px 0;border-radius:9999px;border:none;
@@ -131,7 +133,7 @@
   .sent-toast{width:85%;min-height:80px;opacity:0;pointer-events:none;z-index:100;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .8s ease,filter .8s ease,transform .8s ease;filter:blur(8px);transform:translateY(24px)}
   .sent-toast.show{opacity:1;filter:blur(0);transform:translateY(0)}
   .sent-toast.exit{opacity:0;filter:blur(8px);transform:translateY(-24px)}
-  .sent-toast .toast-main{position:relative;font-size:30px;font-weight:600;line-height:1.5;letter-spacing:-.04em;white-space:pre-line;color:rgba(34,34,34,.85)}
+  .sent-toast .toast-main{position:relative;font-size:clamp(22px, 6.5vw, 30px);font-weight:600;line-height:1.5;letter-spacing:-.04em;white-space:pre-line;color:rgba(34,34,34,.85)}
   .sent-toast .toast-glow{position:absolute;top:0;left:0;width:100%;white-space:pre-line;text-align:center;color:transparent;-webkit-text-fill-color:transparent;background-image:conic-gradient(from 0deg at 50% 50%,#FF5C00,#FF8EFF,#00ADFF,#8364FF,#FF5C00);background-size:150% 150%;-webkit-background-clip:text;background-clip:text;animation:gflow 8s linear infinite;-webkit-mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%);mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%);opacity:.45;pointer-events:none}
   .sent-toast .toast-sub{font-size:16px;font-weight:600;line-height:1.6;letter-spacing:-.02em;color:rgba(34,34,34,.35)}
 </style>
@@ -173,7 +175,7 @@ AX 문화가 궁금해&rdquo;</div></div>
 <div class="compose-overlay">
   <div class="typing-display" id="typingDisplay"><span class="cursor"></span></div>
   <div class="sent-toast" id="sentToast"></div>
-  <textarea class="hidden-input" id="hiddenInput" maxlength="200"></textarea>
+  <textarea class="hidden-input" id="hiddenInput" maxlength="200" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="send"></textarea>
 </div>
 
 <div class="compose-controls">
@@ -225,7 +227,6 @@ if (window.visualViewport) {
 /* ── Compose mode ── */
 function enterCompose() {
   isComposing = true;
-  document.body.classList.add('compose');
   hiddenInput.value = '';
   prevLen = 0;
   typingDisplay.innerHTML = '<span class="cursor"></span>';
@@ -234,9 +235,12 @@ function enterCompose() {
   sentToast.innerHTML = '';
   submitBtn.disabled = true;
   composeControls.style.cssText = '';
-  // iOS requires focus within user gesture — minimal delay
+  // iOS: textarea must be interactable (not pointer-events:none) BEFORE focus
+  document.body.classList.add('compose');
+  // iOS: readOnly trick prevents zoom, focus grabs keyboard in user gesture
+  hiddenInput.readOnly = true;
   hiddenInput.focus();
-  setTimeout(() => { hiddenInput.focus(); hiddenInput.click(); }, 50);
+  setTimeout(() => { hiddenInput.readOnly = false; }, 50);
 }
 function exitCompose() {
   isComposing = false;
@@ -256,6 +260,7 @@ function exitCompose() {
 }
 
 ctaBtn.addEventListener('click', enterCompose);
+ctaBtn.addEventListener('touchend', (e) => { e.preventDefault(); enterCompose(); });
 cancelBtn.addEventListener('click', exitCompose);
 
 /* ── Typing display ── */
@@ -275,7 +280,7 @@ hiddenInput.addEventListener('input', () => {
 });
 
 hiddenInput.addEventListener('blur', () => {
-  if (isComposing) requestAnimationFrame(() => hiddenInput.focus());
+  if (isComposing) setTimeout(() => { hiddenInput.readOnly = true; hiddenInput.focus(); setTimeout(() => { hiddenInput.readOnly = false; }, 50); }, 100);
 });
 hiddenInput.addEventListener('compositionstart', () => { isIME = true; });
 hiddenInput.addEventListener('compositionend', () => { isIME = false; });
