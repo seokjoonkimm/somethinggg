@@ -100,14 +100,14 @@
   .compose-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:env(safe-area-inset-top,0px) 24px env(safe-area-inset-bottom,0px);opacity:0;pointer-events:none;transition:opacity .7s ease,height .3s ease}
   body.compose .compose-overlay{opacity:1;pointer-events:auto}
 
-  .typing-display{font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.5;letter-spacing:-.04em;text-align:center;width:85%;min-height:60px;position:relative;word-break:keep-all;overflow-wrap:break-word;color:rgba(34,34,34,.85);margin-top:10px}
+  .typing-display{font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.5;letter-spacing:-.04em;text-align:center;width:85%;min-height:60px;position:relative;word-break:keep-all;overflow-wrap:break-word;color:rgba(34,34,34,.85);margin-top:30px}
   .typing-display .char{display:inline;color:rgba(34,34,34,.85)}
   @keyframes type-pulse{0%{color:rgba(131,100,255,.7)}100%{color:rgba(34,34,34,.85)}}
   .typing-display .cursor{display:inline-block;width:1.5px;height:1em;background:rgba(131,100,255,.5);margin-left:2px;animation:cursor-blink 1.2s ease-in-out infinite;vertical-align:text-bottom}
   @keyframes cursor-blink{0%,100%{opacity:.3}50%{opacity:.8}}
 
   /* Hidden textarea — always offscreen visually, but never display:none (kills focus on iOS) */
-  .hidden-input{position:fixed;top:0;left:0;width:100%;height:100%;opacity:0.01;border:none;outline:none;background:transparent;font-size:16px;z-index:61;color:transparent;caret-color:transparent;resize:none;-webkit-appearance:none;-webkit-user-select:text;user-select:text;padding:40% 20% 0;text-align:center}
+  .hidden-input{position:fixed;top:0;left:0;width:100%;height:100%;opacity:0.01;border:none;outline:none;background:transparent;font-size:16px;z-index:61;color:transparent;caret-color:transparent;-webkit-appearance:none;-webkit-user-select:text;user-select:text;padding:40% 20% 0;text-align:center}
   body:not(.compose) .hidden-input{pointer-events:none;z-index:-1}
 
   /* ── Back button ── */
@@ -116,36 +116,17 @@
   .back-btn svg{width:24px;height:24px;stroke:rgba(0,0,0,.4);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
   .back-btn:active{transform:scale(.9)}
 
-  /* ── Submit button (hidden — enter to send) ── */
-  .compose-controls{display:none}
-  .compose-btn-submit{
-    position:relative;width:100%;padding:20px 0;border-radius:9999px;border:none;
-    background:linear-gradient(135deg,rgba(255,92,0,.3),rgba(255,142,255,.3),rgba(0,173,255,.3),rgba(131,100,255,.3));
-    background-size:300% 300%;animation:gflow 6s ease infinite;
-    backdrop-filter:blur(60px) saturate(2.5) brightness(1.05);-webkit-backdrop-filter:blur(60px) saturate(2.5) brightness(1.05);
-    color:rgba(0,0,0,.75);font-family:inherit;font-size:16px;font-weight:600;letter-spacing:-.02em;cursor:pointer;transition:all .3s;
-    box-shadow:0 2px 8px rgba(0,0,0,.05),0 8px 32px rgba(0,0,0,.03);overflow:hidden;
-  }
-  .compose-btn-submit::before{
-    content:'';position:absolute;inset:0;border-radius:9999px;pointer-events:none;
-    background:radial-gradient(ellipse 70% 60% at 50% 50%,transparent 0%,transparent 45%,rgba(255,255,255,.12) 65%,rgba(255,255,255,.25) 80%,rgba(255,255,255,.35) 100%),
-    linear-gradient(180deg,rgba(255,255,255,.25) 0%,rgba(255,255,255,.08) 30%,transparent 55%);
-  }
-  .compose-btn-submit::after{
-    content:'';position:absolute;inset:0;border-radius:9999px;pointer-events:none;
-    border:1.5px solid rgba(255,255,255,.27);
-    box-shadow:inset 0 1px 3px rgba(255,255,255,.3),inset 0 -1px 2px rgba(0,0,0,.03),inset 2px 0 4px rgba(255,255,255,.07),inset -2px 0 4px rgba(255,255,255,.07),0 0 8px rgba(255,255,255,.15);
-  }
-  .compose-btn-submit:active{transform:scale(.97)}
-  .compose-btn-submit:disabled{opacity:.2;pointer-events:none;animation:none}
+  /* ── Form wrapper ── */
+  #sendForm{position:fixed;top:0;left:0;width:0;height:0;overflow:visible;margin:0;padding:0;border:none}
+
 
   /* ── Toast ── */
   .sent-toast{width:85%;min-height:80px;opacity:0;pointer-events:none;z-index:100;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity .8s ease,translate .8s ease;translate:0 12px}
   .sent-toast.show{opacity:1;translate:0 0}
   .sent-toast.exit{opacity:0;translate:0 -12px}
-  .sent-toast .toast-main{position:relative;font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.35;letter-spacing:-.04em;white-space:pre-line;word-break:keep-all;overflow-wrap:break-word;color:rgba(34,34,34,.85)}
+  .sent-toast .toast-main{position:relative;font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.2;letter-spacing:-.04em;white-space:pre-line;word-break:keep-all;overflow-wrap:break-word;color:rgba(34,34,34,.85)}
   .sent-toast .toast-glow{position:absolute;top:0;left:0;width:100%;white-space:pre-line;text-align:center;color:transparent;-webkit-text-fill-color:transparent;background-image:conic-gradient(from 0deg at 50% 50%,#FF5C00,#FF8EFF,#00ADFF,#8364FF,#FF5C00);background-size:150% 150%;-webkit-background-clip:text;background-clip:text;animation:gflow 8s linear infinite;-webkit-mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%);mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%);opacity:.45;pointer-events:none}
-  .sent-toast .toast-sub{font-size:clamp(14px, 4vw, 17px);font-weight:600;line-height:1.35;letter-spacing:-.02em;color:rgba(34,34,34,.4)}
+  .sent-toast .toast-sub{font-size:clamp(14px, 4vw, 17px);font-weight:600;line-height:1.2;letter-spacing:-.02em;color:rgba(34,34,34,.4)}
 </style>
 </head>
 <body>
@@ -163,11 +144,11 @@
   <div class="text-area">
     <div class="guide-label">엔노이아에게 질문해 보세요</div>
     <div class="example-area">
-      <div class="txt-slide active"><span class="txt-base">사람은
-AI에게 대체될 수 있을까?</span><div class="txt-glow">사람은
-AI에게 대체될 수 있을까?</div></div>
-      <div class="txt-slide"><span class="txt-base">하이파이브 2026의
-주제는 뭐야?</span><div class="txt-glow">하이파이브 2026의
+      <div class="txt-slide active"><span class="txt-base">사람은 AI에게
+대체될 수 있을까?</span><div class="txt-glow">사람은 AI에게
+대체될 수 있을까?</div></div>
+      <div class="txt-slide"><span class="txt-base">하이파이브 26의
+주제는 뭐야?</span><div class="txt-glow">하이파이브 26의
 주제는 뭐야?</div></div>
       <div class="txt-slide"><span class="txt-base">원티드랩의
 AX 문화가 궁금해</span><div class="txt-glow">원티드랩의
@@ -190,12 +171,9 @@ AX 문화가 궁금해</div></div>
 <div class="compose-overlay">
   <div class="typing-display" id="typingDisplay"><span class="cursor"></span></div>
   <div class="sent-toast" id="sentToast"></div>
-  <textarea class="hidden-input" id="hiddenInput" maxlength="200" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="send"></textarea>
+  <form id="sendForm" action="javascript:void(0)"><input class="hidden-input" id="hiddenInput" type="text" maxlength="200" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="send"></form>
 </div>
 
-<div class="compose-controls">
-  <button class="compose-btn-submit" id="submitBtn" disabled>보내기</button>
-</div>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
@@ -210,37 +188,52 @@ firebase.initializeApp({
 });
 const qRef = firebase.database().ref(`rooms/${ROOM_ID}/questions`);
 
-/* ── DOM refs ── */
-const ctaBtn = document.getElementById('ctaBtn');
+/* ── DOM ── */
 const hiddenInput = document.getElementById('hiddenInput');
 const typingDisplay = document.getElementById('typingDisplay');
 const cancelBtn = document.getElementById('cancelBtn');
-const submitBtn = document.getElementById('submitBtn');
 const sentToast = document.getElementById('sentToast');
-const composeControls = document.querySelector('.compose-controls');
+const overlay = document.querySelector('.compose-overlay');
 
-let isComposing = false, prevLen = 0, isIME = false;
+let isComposing = false;
+let prevLen = 0;
+let sendLock = false;
+let compositionJustEnded = false;
 
-/* ── Keyboard handling (mobile) ── */
+/* ── Helper: 입력 클리어 ── */
+function clearInput(keepFocus) {
+  hiddenInput.value = '';
+  prevLen = 0;
+  // IME 늦은 커밋 방어: 50ms간 input 이벤트에서 재클리어
+  pendingClear = true;
+  setTimeout(() => { pendingClear = false; }, 50);
+  if (!keepFocus) hiddenInput.blur();
+}
+
+function resetOverlay() {
+  overlay.style.top = '';
+  overlay.style.height = '';
+  overlay.style.bottom = '';
+  overlay.style.justifyContent = '';
+  overlay.style.paddingTop = '';
+}
+
+/* ── Keyboard position sync (mobile) ── */
 if (window.visualViewport) {
-  const overlay = document.querySelector('.compose-overlay');
   const syncOverlay = () => {
     if (!isComposing) return;
     const vvH = window.visualViewport.height;
     const vvTop = window.visualViewport.offsetTop;
-    const fullH = window.innerHeight;
-    const kbH = fullH - vvH;
+    const kbH = window.innerHeight - vvH;
     overlay.style.top = vvTop + 'px';
     overlay.style.height = vvH + 'px';
     overlay.style.bottom = 'auto';
     if (kbH > 100) {
-      // 키보드 있을 때 — 남은 영역 2/5 지점에 배치
       overlay.style.justifyContent = 'flex-start';
       overlay.style.paddingTop = Math.round(vvH * 0.3) + 'px';
     } else {
-      // 키보드 없을 때 — 중앙
       overlay.style.justifyContent = 'center';
-      overlay.style.paddingTop = 'env(safe-area-inset-top,0px)';
+      overlay.style.paddingTop = '';
     }
   };
   window.visualViewport.addEventListener('resize', syncOverlay);
@@ -255,160 +248,125 @@ function enterCompose() {
   prevLen = 0;
   typingDisplay.innerHTML = '<span class="cursor"></span>';
   typingDisplay.style.cssText = '';
-  sentToast.classList.remove('show','exit');
+  sentToast.classList.remove('show', 'exit');
   sentToast.innerHTML = '';
   document.body.classList.add('compose');
 }
+
 function exitCompose() {
   isComposing = false;
   hiddenInput.blur();
   document.body.classList.remove('compose');
-  // Reset after overlay transition
-  const overlay = document.querySelector('.compose-overlay');
   setTimeout(() => {
+    resetOverlay();
     typingDisplay.style.cssText = '';
     typingDisplay.innerHTML = '<span class="cursor"></span>';
-    sentToast.classList.remove('show','exit');
+    sentToast.classList.remove('show', 'exit');
     sentToast.innerHTML = '';
     hiddenInput.value = '';
     prevLen = 0;
-    overlay.style.top = '';
-    overlay.style.height = '';
-    overlay.style.bottom = '';
-    overlay.style.justifyContent = '';
-    overlay.style.paddingTop = '';
   }, 700);
 }
 
-// <label for="hiddenInput"> natively focuses the textarea on tap (even on iOS Safari).
-// We enter compose mode when textarea receives focus.
+// label[for="hiddenInput"]이 탭하면 input에 focus → compose 진입
 hiddenInput.addEventListener('focus', () => { if (!isComposing) enterCompose(); });
 cancelBtn.addEventListener('click', exitCompose);
 
-/* ── Typing display ── */
+// compose overlay 탭 → 키보드 재오픈
+overlay.addEventListener('click', () => { if (isComposing) hiddenInput.focus(); });
+
+/* ── Typing display (입력 미러링) ── */
+let pendingClear = false; // 클리어 직후 IME 늦은 커밋 방어 플래그
+
 hiddenInput.addEventListener('input', () => {
+  // 클리어 직후 IME가 늦게 커밋한 텍스트 → 즉시 재클리어
+  if (pendingClear) {
+    hiddenInput.value = '';
+    prevLen = 0;
+    typingDisplay.innerHTML = '<span class="cursor"></span>';
+    return;
+  }
   const text = hiddenInput.value;
   const newLen = text.length;
   let html = '';
   for (let i = 0; i < text.length; i++) {
-    const ch = text[i] === '\n' ? '<br>' : (text[i] === ' ' ? ' ' : text[i].replace(/</g,'&lt;'));
+    const ch = text[i] === ' ' ? '&nbsp;' : text[i].replace(/</g, '&lt;');
     const pulse = (i >= prevLen && newLen > prevLen) ? ' style="animation:type-pulse .6s ease forwards"' : '';
     html += `<span class="char"${pulse}>${ch}</span>`;
   }
   html += '<span class="cursor"></span>';
   typingDisplay.innerHTML = html;
   prevLen = newLen;
-  submitBtn.disabled = !text.trim();
 });
 
-// In compose mode, tapping anywhere on overlay refocuses (user gesture = keyboard reopens)
-hiddenInput.addEventListener('blur', () => {});  // no auto-refocus
-document.querySelector('.compose-overlay').addEventListener('click', () => {
-  if (isComposing) hiddenInput.focus();
-});
-hiddenInput.addEventListener('compositionstart', () => { isIME = true; });
-
-// Enter 전송 — keydown + beforeinput + compositionend 모두 대응
-let enterPending = false;
-let sendLock = false; // 중복 전송 방지
-
+/* ══════════════════════════════════════
+   전송 이벤트 — 4단계 안전장치
+   ══════════════════════════════════════ */
 function trySend() {
   if (sendLock) return;
   sendLock = true;
   setTimeout(() => { sendLock = false; }, 300);
-  send();
+  // setTimeout(0): compositionend + input 이벤트가 완료된 뒤 실행
+  // → 브라우저가 조합 텍스트를 커밋한 후에 클리어하므로 "발" 잔류 방지
+  setTimeout(() => send(), 0);
 }
 
-hiddenInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    if (!isIME) {
-      trySend();
-    } else {
-      enterPending = true;
-    }
-  }
+// 1) form submit — enterkeyhint="send" 가 가장 확실하게 트리거
+document.getElementById('sendForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  trySend();
 });
-hiddenInput.addEventListener('keyup', e => {
-  if (enterPending && e.key === 'Enter') {
-    enterPending = false;
-    setTimeout(() => trySend(), 0);
-  }
+
+// 2) keydown Enter 백업
+hiddenInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); trySend(); }
 });
-// 모바일에서 keydown이 안 오는 경우 beforeinput으로 잡기
-hiddenInput.addEventListener('beforeinput', e => {
+
+// 3) beforeinput 백업 (일부 모바일 브라우저)
+hiddenInput.addEventListener('beforeinput', (e) => {
   if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') {
-    e.preventDefault();
-    if (!isIME) {
-      trySend();
-    } else {
-      enterPending = true;
-    }
+    e.preventDefault(); trySend();
   }
 });
-// IME 조합 중 Enter → compositionend 후 전송
+
+// 4) iOS 한글 IME: Enter가 조합만 끝내고 키보드 내리는 경우
+//    compositionend 직후 blur → 전송 의도로 간주
+hiddenInput.addEventListener('compositionstart', () => { compositionJustEnded = false; });
 hiddenInput.addEventListener('compositionend', () => {
-  isIME = false;
-  if (enterPending) {
-    enterPending = false;
-    setTimeout(() => trySend(), 10);
-  }
+  compositionJustEnded = true;
+  setTimeout(() => { compositionJustEnded = false; }, 500);
+});
+hiddenInput.addEventListener('blur', () => {
+  if (!compositionJustEnded || !isComposing || !hiddenInput.value.trim() || sendLock) return;
+  compositionJustEnded = false;
+  // 200ms 뒤에도 blur 상태면 (overlay 탭으로 refocus 안 된 경우) 전송
+  setTimeout(() => {
+    if (isComposing && document.activeElement !== hiddenInput && hiddenInput.value.trim() && !sendLock) {
+      trySend();
+    }
+  }, 200);
 });
 
-/* ── Toast system ── */
-function showToast(main, sub, duration, cb) {
-  // 키보드 내리고 overlay를 전체 중앙으로 리셋
-  hiddenInput.blur();
-  const overlay = document.querySelector('.compose-overlay');
-  overlay.style.top = '';
-  overlay.style.height = '';
-  overlay.style.bottom = '';
-  overlay.style.justifyContent = 'center';
-  overlay.style.paddingTop = '';
-
-  typingDisplay.style.transition = 'opacity .5s ease,transform .5s ease,filter .5s ease';
-  typingDisplay.style.opacity = '0';
-  typingDisplay.style.transform = 'translateY(-24px)';
-  typingDisplay.style.filter = 'blur(8px)';
-  setTimeout(() => {
-    typingDisplay.style.display = 'none';
-    sentToast.innerHTML = `<div class="toast-main">${main}<div class="toast-glow">${main}</div></div>${sub ? `<div class="toast-sub">${sub}</div>` : ''}`;
-    sentToast.classList.add('show');
-  }, 500);
-  setTimeout(() => cb(), 500 + duration);
-}
-
-function toastThenRestore() {
-  sentToast.classList.add('exit');
-  setTimeout(() => {
-    sentToast.classList.remove('show','exit');
-    sentToast.innerHTML = '';
-    typingDisplay.style.display = '';
-    typingDisplay.style.cssText = '';
-    typingDisplay.innerHTML = '<span class="cursor"></span>';
-    hiddenInput.value = '';
-    prevLen = 0;
-    isComposing = true;
-    document.body.classList.add('compose');
-    // 키보드 다시 올리기
-    setTimeout(() => { hiddenInput.focus(); }, 150);
-  }, 800);
-}
-
-/* ── Filters ── */
-// 어디서든 포함되면 즉시 차단 (진짜 욕/음담패설)
+/* ══════════════════════════════════════
+   필터링
+   ══════════════════════════════════════ */
 const BLOCKED_WORDS = [
-  '씨발','시발','씨빨','씨팔','시팔',
-  '개새끼','새끼',
-  '병신',
-  '지랄',
-  '좆','존나','졸라',
-  'fuck','shit','bitch','asshole','cunt','whore',
-  '야동','포르노','자위','보지','자지',
+  // 욕설 + 변형
+  '씨발','시발','씨빨','씨팔','시팔','씨바','시바','씹','ㅅㅂ','ㅆㅂ',
+  '개새끼','새끼','ㅅㄲ','개새','개섹',
+  '병신','ㅂㅅ','ㅄ','빙신','병딱',
+  '지랄','ㅈㄹ','지럴',
+  '좆','존나','졸라','ㅈㄴ','존맛','좃',
+  '꺼져','닥쳐','뒤져','뒤질','죽어','죽을',
+  '미친놈','미친년','년','놈','애미','애비','엠창',
+  // 영어
+  'fuck','shit','bitch','asshole','cunt','whore','damn','dick','pussy',
+  // 성적 표현
+  '야동','포르노','자위','보지','자지','섹스','sex',
   '강간','성폭행','성추행','몰카',
   'porn','hentai','nsfw',
 ];
-// 단어 하나만 보냈을 때 허용되는 인사/감사 표현 (나머지 단독 단어는 전부 차단)
+
 const SOLO_ALLOWED = [
   '안녕','안녕하세요','반가워','반갑습니다','하이','하이루','헬로','hello','hi','hey',
   '고마워','고맙습니다','감사','감사합니다','감사해요','땡큐','thanks','thank',
@@ -417,57 +375,99 @@ const SOLO_ALLOWED = [
 ];
 
 function checkBlocked(text) {
-  const lower = text.toLowerCase().replace(/\s/g,'');
+  const lower = text.toLowerCase().replace(/\s/g, '');
   if (BLOCKED_WORDS.some(w => lower.includes(w))) return 'profanity';
   const trimmed = text.trim().toLowerCase();
-  const isSingleWord = !trimmed.includes(' ') && trimmed.length <= 10;
-  if (isSingleWord && !SOLO_ALLOWED.some(w => trimmed === w)) return 'single';
+  if (!trimmed.includes(' ') && trimmed.length <= 10 && !SOLO_ALLOWED.some(w => trimmed === w)) return 'single';
   return null;
 }
 
-/* ── Send ── */
-async function send() {
-  const text = hiddenInput.value.trim();
-  if (!text) return;
-  // 필터 체크
-  const blocked = checkBlocked(text);
-  if (blocked) {
-    hiddenInput.value = ''; prevLen = 0;
-    const msg = blocked === 'profanity'
-      ? '부적절한 질문은<br>답변할 수 없어요'
-      : '질문에만 답변할 수 있어요';
-    // 키보드 안 내리고 타이핑 영역에 직접 메시지 표시
-    typingDisplay.innerHTML = `<span style="color:rgba(34,34,34,.4);font-size:clamp(14px, 4vw, 17px);font-weight:600;letter-spacing:-.02em;line-height:1.35">${msg}</span>`;
+/* ══════════════════════════════════════
+   차단 토스트 (키보드 유지, 인라인 표시)
+   ══════════════════════════════════════ */
+function showBlockedToast(msg) {
+  clearInput(true); // value만 클리어, 키보드 유지
+
+  const span = document.createElement('span');
+  span.style.cssText = 'color:rgba(34,34,34,.4);font-size:clamp(14px,4vw,17px);font-weight:600;letter-spacing:-.02em;line-height:1.4;opacity:0;transition:opacity .5s ease;display:inline-block';
+  span.innerHTML = msg;
+  typingDisplay.innerHTML = '';
+  typingDisplay.appendChild(span);
+  // 페이드인
+  requestAnimationFrame(() => requestAnimationFrame(() => { span.style.opacity = '1'; }));
+  // 2초 유지 → 페이드아웃 → 커서 복귀 + 키보드 유지
+  setTimeout(() => {
+    span.style.opacity = '0';
     setTimeout(() => {
       typingDisplay.innerHTML = '<span class="cursor"></span>';
       hiddenInput.focus();
-    }, 2000);
-    return;
-  }
-  // 전송
+    }, 500);
+  }, 2000);
+}
+
+/* ══════════════════════════════════════
+   성공 토스트 (키보드 닫고 전체 오버레이)
+   ══════════════════════════════════════ */
+function showSuccessToast() {
   isComposing = false;
-  hiddenInput.blur();
-  try { await qRef.push({ text, ts: Date.now() }); }
-  catch(e) { console.error('Firebase send error:', e); }
-  showToast('전송되었어요', '질문이 많을 시 답변이 늦어질 수도 있어요.<br>부적절한 질문은 답변할 수 없어요.', 3000, () => {
+  clearInput(false); // blur + 클리어
+  resetOverlay();
+  overlay.style.justifyContent = 'center';
+
+  // 타이핑 디스플레이 페이드아웃
+  typingDisplay.style.transition = 'opacity .5s ease,transform .5s ease,filter .5s ease';
+  typingDisplay.style.opacity = '0';
+  typingDisplay.style.transform = 'translateY(-24px)';
+  typingDisplay.style.filter = 'blur(8px)';
+
+  setTimeout(() => {
+    typingDisplay.style.display = 'none';
+    sentToast.innerHTML = '<div class="toast-main">전송되었어요<div class="toast-glow">전송되었어요</div></div><div class="toast-sub">질문이 많을 시 답변이 늦어질 수도 있어요.<br>부적절한 질문은 답변할 수 없어요.</div>';
+    sentToast.classList.add('show');
+  }, 500);
+
+  // 3.5초 뒤 퇴장 → 홈으로 복귀
+  setTimeout(() => {
     sentToast.classList.add('exit');
     setTimeout(() => {
-      isComposing = false;
       document.body.classList.remove('compose');
       setTimeout(() => {
         typingDisplay.style.cssText = '';
+        typingDisplay.style.display = '';
         typingDisplay.innerHTML = '<span class="cursor"></span>';
-        sentToast.classList.remove('show','exit');
+        sentToast.classList.remove('show', 'exit');
         sentToast.innerHTML = '';
         hiddenInput.value = '';
         prevLen = 0;
-        submitBtn.disabled = true;
-        composeControls.style.cssText = '';
       }, 700);
     }, 800);
-  });
+  }, 3500);
 }
-submitBtn.addEventListener('click', send);
+
+/* ══════════════════════════════════════
+   Send
+   ══════════════════════════════════════ */
+async function send() {
+  const text = hiddenInput.value.trim();
+  if (!text) return;
+
+  // 필터
+  const blocked = checkBlocked(text);
+  if (blocked) {
+    showBlockedToast(
+      blocked === 'profanity'
+        ? '부적절한 질문은<br>답변할 수 없어요'
+        : '질문에만 답변할 수 있어요'
+    );
+    return;
+  }
+
+  // Firebase 전송
+  try { await qRef.push({ text, ts: Date.now() }); }
+  catch(e) { console.error('Firebase send error:', e); }
+
+  showSuccessToast();
+}
 
 /* ── Intro title sequence ── */
 {
