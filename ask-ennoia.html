@@ -11,13 +11,22 @@
   html,body{height:100%;height:-webkit-fill-available;overflow:hidden}
   body{min-height:100dvh;min-height:-webkit-fill-available;font-family:'Pretendard',system-ui,-apple-system,sans-serif;background:#fff;color:#222;overflow:hidden;touch-action:manipulation;
     padding:0;margin:0;
-    opacity:0;filter:blur(20px);animation:page-enter 0.8s ease forwards}
+    opacity:0;filter:blur(20px);animation:page-enter 1.0s ease forwards}
   @keyframes page-enter{to{opacity:1;filter:blur(0)}}
 
-  /* ── Intro stagger ── */
-  .guide-label{opacity:0;transform:translateY(12px);animation:intro-up 0.8s ease 1.0s forwards}
-  .example-area{opacity:0;transform:translateY(12px);animation:intro-up 0.8s ease 1.3s forwards}
-  .cta-area{opacity:0;transform:translateY(12px);animation:intro-up 0.8s ease 1.6s forwards}
+  /* ── Intro title overlay ── */
+  .intro-title{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;gap:6px}
+  .intro-line{font-size:clamp(26px,7.5vw,36px);font-weight:700;letter-spacing:-.04em;color:rgba(34,34,34,.85);text-align:center;opacity:0;filter:blur(8px);translate:0 12px}
+  .intro-line.show{opacity:1;filter:blur(0);translate:0 0;transition:opacity .6s ease,filter .6s ease,translate .6s ease}
+  .intro-line.hide{opacity:0;filter:blur(8px);translate:0 -12px;transition:opacity .5s ease,filter .5s ease,translate .5s ease}
+
+  /* ── UI stagger (인트로 끝난 후) ── */
+  .guide-label{opacity:0;translate:0 12px}
+  .example-area{opacity:0;translate:0 12px}
+  .cta-area{opacity:0;translate:0 12px}
+  .guide-label.show,.example-area.show,.cta-area.show{opacity:1;translate:0 0;transition:opacity 1s ease,translate 1s ease}
+  .cta-btn .cta-mask{position:absolute;inset:0;border-radius:9999px;background:#fff;opacity:1;transition:opacity 4s ease;pointer-events:none;z-index:1}
+  .cta-area.show .cta-btn .cta-mask{opacity:0}
   @keyframes intro-up{to{opacity:1;transform:translateY(0)}}
 
   /* ── Layout ── */
@@ -25,14 +34,14 @@
   body.compose .container{opacity:0;filter:blur(20px);pointer-events:none}
 
   /* ── CTA button — Liquid Glass ── */
-  .cta-area{padding:0 16px 16px;display:flex;justify-content:center;z-index:70;transition:opacity .5s ease,filter .5s ease;width:100%}
+  .cta-area{position:fixed;bottom:env(safe-area-inset-bottom,0px);left:0;right:0;padding:0 40px 24px;display:flex;justify-content:center;z-index:70;transition:opacity 1.2s ease,filter .5s ease}
   body.compose .cta-area{opacity:0;filter:blur(20px);pointer-events:none}
   .cta-btn{
     display:block;text-align:center;
     position:relative;width:100%;padding:20px 0;border-radius:9999px;border:none;
     background:rgba(255,255,255,.08);
-    backdrop-filter:blur(40px) saturate(4) brightness(1.15) contrast(1.2);
-    -webkit-backdrop-filter:blur(40px) saturate(4) brightness(1.15) contrast(1.2);
+    backdrop-filter:none;
+    -webkit-backdrop-filter:none;
     color:rgba(0,0,0,.7);font-family:inherit;font-size:16px;font-weight:700;
     letter-spacing:-.02em;cursor:pointer;transition:all .3s;
     box-shadow:0 2px 12px rgba(0,0,0,.06),0 8px 32px rgba(0,0,0,.04);overflow:hidden;
@@ -50,14 +59,14 @@
   .cta-btn:active{transform:scale(.97)}
 
   /* ── Guide text ── */
-  .text-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;gap:28px}
+  .text-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;gap:22px;padding-bottom:44px}
   .guide-label{font-size:clamp(14px, 4vw, 17px);font-weight:600;letter-spacing:-.02em;color:rgba(34,34,34,.4);text-align:center}
 
   /* ── Rolling questions ── */
   .example-area{position:relative;width:88%;min-height:140px;display:flex;align-items:flex-start;justify-content:center}
-  .txt-slide{position:absolute;top:0;font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.5;letter-spacing:-.04em;white-space:pre-line;text-align:center;width:100%;opacity:0;filter:blur(8px);transition:opacity 1.5s ease,filter 1.5s ease;word-break:keep-all;overflow-wrap:break-word}
-  .txt-slide.active{opacity:1;filter:blur(0)}
-  .txt-slide.exit{opacity:0;filter:blur(8px)}
+  .txt-slide{position:absolute;top:0;font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.35;letter-spacing:-.04em;white-space:pre-line;text-align:center;width:100%;opacity:0;translate:0 12px;transition:opacity 0.5s ease,translate 0.5s ease;word-break:keep-all;overflow-wrap:break-word}
+  .txt-slide.active{opacity:1;translate:0 0}
+  .txt-slide.exit{opacity:0;translate:0 -12px}
   .txt-slide .txt-base{color:rgba(34,34,34,.85)}
   .txt-slide .txt-glow{
     position:absolute;top:0;left:0;width:100%;white-space:pre-line;text-align:center;
@@ -72,26 +81,26 @@
   @keyframes gflow{0%{background-position:0% 50%}25%{background-position:100% 25%}50%{background-position:100% 50%}75%{background-position:0% 75%}100%{background-position:0% 50%}}
 
   /* ── Canvas / Bloom / White orb layers ── */
-  #cubeCanvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;transition:opacity .8s ease;opacity:0;animation:canvas-in 1.8s ease forwards}
-  @keyframes canvas-in{0%{opacity:0}30%{opacity:1}100%{opacity:1}}
+  #cubeCanvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;transition:opacity .8s ease;opacity:0;animation:canvas-in 2.5s ease forwards}
+  @keyframes canvas-in{0%{opacity:0}40%{opacity:1}100%{opacity:1}}
   body.compose #cubeCanvas{opacity:.35}
 
   #bloomLayer{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;
     background:transparent;backdrop-filter:blur(35px) saturate(1.3) brightness(1.1);-webkit-backdrop-filter:blur(35px) saturate(1.3) brightness(1.1);
-    opacity:0;animation:bloom-in 1.5s ease .8s forwards}
+    opacity:0;animation:bloom-in 2s ease 1.0s forwards}
   @keyframes bloom-in{to{opacity:1}}
 
-  #whiteOrb{position:fixed;left:50%;top:45%;transform:translate(-50%,-50%) scale(.8);width:160vw;height:320vw;border-radius:50%;pointer-events:none;z-index:5;
+  #whiteOrb{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.6);width:160vw;height:320vw;border-radius:50%;pointer-events:none;z-index:5;
     background:radial-gradient(circle,rgba(255,255,255,1) 0%,rgba(255,255,255,.91) 25%,rgba(255,255,255,.5) 50%,rgba(255,255,255,0) 70%);
-    opacity:0;animation:wh-orb-in 1.5s ease 1.3s forwards}
-  @keyframes wh-orb-in{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+    opacity:0;animation:wh-orb-in 2s cubic-bezier(.25,.1,.25,1) 1.5s forwards}
+  @keyframes wh-orb-in{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
   @keyframes wh-breathe{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.12)}100%{transform:translate(-50%,-50%) scale(1)}}
 
   /* ── Compose overlay ── */
-  .compose-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:env(safe-area-inset-top,0px) 24px env(safe-area-inset-bottom,0px);opacity:0;pointer-events:none;transition:opacity .7s ease}
+  .compose-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:env(safe-area-inset-top,0px) 24px env(safe-area-inset-bottom,0px);opacity:0;pointer-events:none;transition:opacity .7s ease,height .3s ease}
   body.compose .compose-overlay{opacity:1;pointer-events:auto}
 
-  .typing-display{font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.5;letter-spacing:-.04em;text-align:center;width:85%;min-height:80px;position:relative;margin-bottom:0;word-break:keep-all;overflow-wrap:break-word;color:rgba(34,34,34,.85)}
+  .typing-display{font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.5;letter-spacing:-.04em;text-align:center;width:85%;min-height:60px;position:relative;word-break:keep-all;overflow-wrap:break-word;color:rgba(34,34,34,.85)}
   .typing-display .char{display:inline;color:rgba(34,34,34,.85)}
   @keyframes type-pulse{0%{color:rgba(131,100,255,.7)}100%{color:rgba(34,34,34,.85)}}
   .typing-display .cursor{display:inline-block;width:1.5px;height:1em;background:rgba(131,100,255,.5);margin-left:2px;animation:cursor-blink 1.2s ease-in-out infinite;vertical-align:text-bottom}
@@ -131,12 +140,12 @@
   .compose-btn-submit:disabled{opacity:.2;pointer-events:none;animation:none}
 
   /* ── Toast ── */
-  .sent-toast{width:85%;min-height:80px;opacity:0;pointer-events:none;z-index:100;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .8s ease,filter .8s ease,transform .8s ease;filter:blur(8px);transform:translateY(24px)}
-  .sent-toast.show{opacity:1;filter:blur(0);transform:translateY(0)}
-  .sent-toast.exit{opacity:0;filter:blur(8px);transform:translateY(-24px)}
-  .sent-toast .toast-main{position:relative;font-size:clamp(22px, 6.5vw, 30px);font-weight:600;line-height:1.5;letter-spacing:-.04em;white-space:pre-line;word-break:keep-all;overflow-wrap:break-word;color:rgba(34,34,34,.85)}
+  .sent-toast{width:85%;min-height:80px;opacity:0;pointer-events:none;z-index:100;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity .8s ease,translate .8s ease;translate:0 12px}
+  .sent-toast.show{opacity:1;translate:0 0}
+  .sent-toast.exit{opacity:0;translate:0 -12px}
+  .sent-toast .toast-main{position:relative;font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.35;letter-spacing:-.04em;white-space:pre-line;word-break:keep-all;overflow-wrap:break-word;color:rgba(34,34,34,.85)}
   .sent-toast .toast-glow{position:absolute;top:0;left:0;width:100%;white-space:pre-line;text-align:center;color:transparent;-webkit-text-fill-color:transparent;background-image:conic-gradient(from 0deg at 50% 50%,#FF5C00,#FF8EFF,#00ADFF,#8364FF,#FF5C00);background-size:150% 150%;-webkit-background-clip:text;background-clip:text;animation:gflow 8s linear infinite;-webkit-mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%);mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%);opacity:.45;pointer-events:none}
-  .sent-toast .toast-sub{font-size:16px;font-weight:600;line-height:1.6;letter-spacing:-.02em;color:rgba(34,34,34,.35)}
+  .sent-toast .toast-sub{font-size:clamp(14px, 4vw, 17px);font-weight:600;line-height:1.35;letter-spacing:-.02em;color:rgba(34,34,34,.4)}
 </style>
 </head>
 <body>
@@ -145,29 +154,34 @@
 <div id="bloomLayer"></div>
 <div id="whiteOrb"></div>
 
+<div class="intro-title" id="introTitle">
+  <div class="intro-line" id="introL1">엔노이아에게</div>
+  <div class="intro-line" id="introL2">질문해 보세요</div>
+</div>
+
 <div class="container">
   <div class="text-area">
     <div class="guide-label">엔노이아에게 질문해 보세요</div>
     <div class="example-area">
-      <div class="txt-slide active"><span class="txt-base">&ldquo;우리의 일은
-AI에게 대체될 수 있을까?&rdquo;</span><div class="txt-glow">&ldquo;우리의 일은
-AI에게 대체될 수 있을까?&rdquo;</div></div>
-      <div class="txt-slide"><span class="txt-base">&ldquo;하이파이브 2026의
-핵심 주제는 뭐야?&rdquo;</span><div class="txt-glow">&ldquo;하이파이브 2026의
-핵심 주제는 뭐야?&rdquo;</div></div>
-      <div class="txt-slide"><span class="txt-base">&ldquo;원티드랩의
-AX 문화가 궁금해&rdquo;</span><div class="txt-glow">&ldquo;원티드랩의
-AX 문화가 궁금해&rdquo;</div></div>
-      <div class="txt-slide"><span class="txt-base">&ldquo;3년 차 브랜드디자이너에게
-이직 꿀팁 알려줘&rdquo;</span><div class="txt-glow">&ldquo;3년 차 브랜드디자이너에게
-이직 꿀팁 알려줘&rdquo;</div></div>
-      <div class="txt-slide"><span class="txt-base">&ldquo;엔노이아는
-무슨 뜻이야?&rdquo;</span><div class="txt-glow">&ldquo;엔노이아는
-무슨 뜻이야?&rdquo;</div></div>
+      <div class="txt-slide active"><span class="txt-base">우리의 일은
+AI에게 대체될 수 있을까?</span><div class="txt-glow">우리의 일은
+AI에게 대체될 수 있을까?</div></div>
+      <div class="txt-slide"><span class="txt-base">하이파이브 2026의
+핵심 주제는 뭐야?</span><div class="txt-glow">하이파이브 2026의
+핵심 주제는 뭐야?</div></div>
+      <div class="txt-slide"><span class="txt-base">원티드랩의
+AX 문화가 궁금해</span><div class="txt-glow">원티드랩의
+AX 문화가 궁금해</div></div>
+      <div class="txt-slide"><span class="txt-base">3년 차 브랜드디자이너에게
+이직 꿀팁 알려줘</span><div class="txt-glow">3년 차 브랜드디자이너에게
+이직 꿀팁 알려줘</div></div>
+      <div class="txt-slide"><span class="txt-base">엔노이아는
+무슨 뜻이야?</span><div class="txt-glow">엔노이아는
+무슨 뜻이야?</div></div>
     </div>
   </div>
   <div class="cta-area">
-    <label class="cta-btn" id="ctaBtn" for="hiddenInput">엔노이아에게 질문하기</label>
+    <label class="cta-btn" id="ctaBtn" for="hiddenInput"><div class="cta-mask"></div><span style="position:relative;z-index:2">엔노이아에게 질문하기</span></label>
   </div>
 </div>
 
@@ -214,10 +228,20 @@ if (window.visualViewport) {
     if (!isComposing) return;
     const vvH = window.visualViewport.height;
     const vvTop = window.visualViewport.offsetTop;
-    // 키보드 위 남은 영역에 overlay를 정확히 맞춤
+    const fullH = window.innerHeight;
+    const kbH = fullH - vvH;
     overlay.style.top = vvTop + 'px';
     overlay.style.height = vvH + 'px';
     overlay.style.bottom = 'auto';
+    if (kbH > 100) {
+      // 키보드 있을 때 — 남은 영역 2/5 지점에 배치
+      overlay.style.justifyContent = 'flex-start';
+      overlay.style.paddingTop = Math.round(vvH * 0.3) + 'px';
+    } else {
+      // 키보드 없을 때 — 중앙
+      overlay.style.justifyContent = 'center';
+      overlay.style.paddingTop = 'env(safe-area-inset-top,0px)';
+    }
   };
   window.visualViewport.addEventListener('resize', syncOverlay);
   window.visualViewport.addEventListener('scroll', syncOverlay);
@@ -233,8 +257,6 @@ function enterCompose() {
   typingDisplay.style.cssText = '';
   sentToast.classList.remove('show','exit');
   sentToast.innerHTML = '';
-  submitBtn.disabled = true;
-  composeControls.style.cssText = '';
   document.body.classList.add('compose');
 }
 function exitCompose() {
@@ -253,6 +275,8 @@ function exitCompose() {
     overlay.style.top = '';
     overlay.style.height = '';
     overlay.style.bottom = '';
+    overlay.style.justifyContent = '';
+    overlay.style.paddingTop = '';
   }, 700);
 }
 
@@ -283,30 +307,42 @@ document.querySelector('.compose-overlay').addEventListener('click', () => {
   if (isComposing) hiddenInput.focus();
 });
 hiddenInput.addEventListener('compositionstart', () => { isIME = true; });
-hiddenInput.addEventListener('compositionend', () => {
-  isIME = false;
-});
+hiddenInput.addEventListener('compositionend', () => { isIME = false; });
+
+// Enter 전송 — keydown에서 IME 아닐때, keyup에서 IME 직후 모두 대응
+let enterPending = false;
 hiddenInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) {
-    if (isIME) {
-      // IME 조합 중 엔터 — compositionend 후 다음 틱에서 전송
-      setTimeout(() => { if (!isIME) send(); }, 10);
-    } else {
-      e.preventDefault();
+    e.preventDefault();
+    if (!isIME) {
       send();
+    } else {
+      enterPending = true;
     }
+  }
+});
+hiddenInput.addEventListener('keyup', e => {
+  if (enterPending && e.key === 'Enter') {
+    enterPending = false;
+    setTimeout(() => send(), 0);
   }
 });
 
 /* ── Toast system ── */
 function showToast(main, sub, duration, cb) {
+  // 키보드 내리고 overlay를 전체 중앙으로 리셋
+  hiddenInput.blur();
+  const overlay = document.querySelector('.compose-overlay');
+  overlay.style.top = '';
+  overlay.style.height = '';
+  overlay.style.bottom = '';
+  overlay.style.justifyContent = 'center';
+  overlay.style.paddingTop = '';
+
   typingDisplay.style.transition = 'opacity .5s ease,transform .5s ease,filter .5s ease';
   typingDisplay.style.opacity = '0';
   typingDisplay.style.transform = 'translateY(-24px)';
   typingDisplay.style.filter = 'blur(8px)';
-  composeControls.style.transition = 'opacity .5s ease';
-  composeControls.style.opacity = '0';
-  composeControls.style.pointerEvents = 'none';
   setTimeout(() => {
     typingDisplay.style.display = 'none';
     sentToast.innerHTML = `<div class="toast-main">${main}<div class="toast-glow">${main}</div></div>${sub ? `<div class="toast-sub">${sub}</div>` : ''}`;
@@ -318,92 +354,63 @@ function showToast(main, sub, duration, cb) {
 function toastThenRestore() {
   sentToast.classList.add('exit');
   setTimeout(() => {
-    isComposing = true;
     sentToast.classList.remove('show','exit');
     sentToast.innerHTML = '';
+    typingDisplay.style.display = '';
     typingDisplay.style.cssText = '';
     typingDisplay.innerHTML = '<span class="cursor"></span>';
-    composeControls.style.cssText = '';
-    setTimeout(() => hiddenInput.focus(), 100);
+    hiddenInput.value = '';
+    prevLen = 0;
+    isComposing = true;
+    document.body.classList.add('compose');
+    // 키보드 다시 올리기
+    setTimeout(() => { hiddenInput.focus(); }, 150);
   }, 800);
 }
 
 /* ── Filters ── */
+// 어디서든 포함되면 즉시 차단 (진짜 욕/음담패설)
 const BLOCKED_WORDS = [
-  '씨발','시발','씨빨','씨팔','시팔','씨바','시바','ㅅㅂ','ㅆㅂ','ㅅㅃ','ssibal','sibal',
-  '개새끼','새끼','ㅅㄲ','샊기','색기','쌔끼',
-  '병신','ㅂㅅ','byungshin','병싄','벼신',
-  '지랄','ㅈㄹ','지럴','짓알',
-  '닥쳐','꺼져','닥치','까져',
-  '미친놈','미친년','ㅁㅊ','미친','michin',
-  '또라이','돌아이','또라히',
-  '찐따','찐다','ㅉㄸ',
-  '등신','멍청이','멍청','얼간이',
-  '개년','시발놈','썅','개소리','개같',
-  '좆','ㅈ같','존나','졸라','ㅈㄴ','죤나','좃나',
-  '엿먹','엿이나','꼴값','느금마','느금','니애미','니엄마','니미','ㄴㅁ',
-  'fuck','shit','damn','bitch','asshole','bastard','dick','pussy','wtf','stfu','cunt','whore',
-  '섹스','야동','포르노','자위','성관계','성행위','떡치','보지','자지',
-  '앙기모띠','앙기모','앙기','기모띠','kimochi','야하','야해','변태','헨타이',
-  '강간','성폭행','성추행','몰카','도촬','음란','야설',
-  'sex','porn','nude','naked','hentai','xxx','nsfw','erotic',
-  '한남충','김치녀','된장녀','꼴페미','메갈','일베','워마드',
-  '틀딱','급식충','맘충',
+  '씨발','시발','씨빨','씨팔','시팔',
+  '개새끼','새끼',
+  '병신',
+  '지랄',
+  '좆','존나','졸라',
+  'fuck','shit','bitch','asshole','cunt','whore',
+  '야동','포르노','자위','보지','자지',
+  '강간','성폭행','성추행','몰카',
+  'porn','hentai','nsfw',
 ];
-const CHO = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
-const BLOCKED_CHO = ['ㅅㅂ','ㅆㅂ','ㅂㅅ','ㅈㄹ','ㅁㅊ','ㅅㄲ','ㅈㄴ','ㅉㄸ','ㄴㅁ','ㅈㄱ'];
+// 단어 하나만 보냈을 때 허용되는 인사/감사 표현 (나머지 단독 단어는 전부 차단)
+const SOLO_ALLOWED = [
+  '안녕','안녕하세요','반가워','반갑습니다','하이','하이루','헬로','hello','hi','hey',
+  '고마워','고맙습니다','감사','감사합니다','감사해요','땡큐','thanks','thank',
+  '네','응','예','넵','넹','ㅇㅇ','ㅇㅋ','오케이','ok','okay',
+  '뭐해','뭐해요','뭐하세요',
+];
 
-function toChosung(text) {
-  let r = '';
-  for (const c of text) {
-    const code = c.charCodeAt(0);
-    if (code >= 0xAC00 && code < 0xD7A4) r += CHO[Math.floor((code - 0xAC00) / 588)];
-    else if (code >= 0x3131 && code <= 0x314E) r += c;
-    else r += c;
-  }
-  return r;
-}
-
-function isJamoOnly(text) {
-  // 공백 제거 후 전체가 자음(ㄱ-ㅎ) 또는 모음(ㅏ-ㅣ)으로만 구성
-  const stripped = text.replace(/\s/g, '');
-  if (!stripped) return false;
-  for (const c of stripped) {
-    const code = c.charCodeAt(0);
-    if (code < 0x3131 || code > 0x3163) return false; // ㄱ(0x3131) ~ ㅣ(0x3163) 범위 밖이면 일반 글자
-  }
-  return true;
-}
-
-function containsBlocked(text) {
+function checkBlocked(text) {
   const lower = text.toLowerCase().replace(/\s/g,'');
-  if (BLOCKED_WORDS.some(w => lower.includes(w.toLowerCase()))) return true;
-  const cho = toChosung(text.replace(/\s/g,''));
-  if (BLOCKED_CHO.some(p => cho.includes(p))) return true;
-  return false;
+  if (BLOCKED_WORDS.some(w => lower.includes(w))) return 'profanity';
+  const trimmed = text.trim().toLowerCase();
+  const isSingleWord = !trimmed.includes(' ') && trimmed.length <= 10;
+  if (isSingleWord && !SOLO_ALLOWED.some(w => trimmed === w)) return 'single';
+  return null;
 }
 
 /* ── Send ── */
 async function send() {
   const text = hiddenInput.value.trim();
   if (!text) return;
-  // 2글자 이하 필터
-  if (text.replace(/\s/g,'').length <= 2) {
-    isComposing = false; hiddenInput.blur(); hiddenInput.value = ''; prevLen = 0;
-    typingDisplay.innerHTML = '<span class="cursor"></span>'; submitBtn.disabled = true;
-    showToast('질문에만 답변할 수 있어요', null, 2500, toastThenRestore); return;
-  }
-  // 초성/자모만으로 이루어진 입력 필터
-  if (isJamoOnly(text)) {
-    isComposing = false; hiddenInput.blur(); hiddenInput.value = ''; prevLen = 0;
-    typingDisplay.innerHTML = '<span class="cursor"></span>'; submitBtn.disabled = true;
-    showToast('질문에만 답변할 수 있어요', null, 2500, toastThenRestore); return;
-  }
-  // 비속어 필터
-  if (containsBlocked(text)) {
-    isComposing = false; hiddenInput.blur(); hiddenInput.value = ''; prevLen = 0;
-    typingDisplay.innerHTML = '<span class="cursor"></span>'; submitBtn.disabled = true;
-    showToast('부적절한 질문은<br>답변할 수 없어요', null, 2500, toastThenRestore); return;
+  // 필터 체크
+  const blocked = checkBlocked(text);
+  if (blocked) {
+    hiddenInput.value = ''; prevLen = 0;
+    typingDisplay.innerHTML = '<span class="cursor"></span>';
+    const msg = blocked === 'profanity'
+      ? '부적절한 질문은<br>답변할 수 없어요'
+      : '질문에만 답변할 수 있어요';
+    showToast(msg, null, 2500, toastThenRestore); return;
   }
   // 전송
   isComposing = false;
@@ -430,10 +437,34 @@ async function send() {
 }
 submitBtn.addEventListener('click', send);
 
+/* ── Intro title sequence ── */
+{
+  const l1 = document.getElementById('introL1');
+  const l2 = document.getElementById('introL2');
+  const introEl = document.getElementById('introTitle');
+  // 0.5s: "엔노이아에게" 등장
+  setTimeout(() => l1.classList.add('show'), 500);
+  // 1.2s: "질문해 보세요" 등장
+  setTimeout(() => l2.classList.add('show'), 1200);
+  // 2.5s: 둘 다 동시에 위로 사라짐
+  setTimeout(() => { l1.classList.add('hide'); l1.classList.remove('show'); l2.classList.add('hide'); l2.classList.remove('show'); }, 2500);
+  // 3.5s~: UI 순차 등장
+  setTimeout(() => { introEl.style.display = 'none'; }, 3400);
+  setTimeout(() => document.querySelector('.guide-label').classList.add('show'), 3500);
+  setTimeout(() => document.querySelector('.example-area').classList.add('show'), 4000);
+  setTimeout(() => document.querySelector('.cta-area').classList.add('show'), 4500);
+  // CTA 완전히 나타난 후 backdrop-filter 켜고 마스크 페이드아웃
+  setTimeout(() => {
+    const btn = document.getElementById('ctaBtn');
+    btn.style.backdropFilter = 'blur(40px) saturate(4) brightness(1.15) contrast(1.2)';
+    btn.style.webkitBackdropFilter = 'blur(40px) saturate(4) brightness(1.15) contrast(1.2)';
+  }, 5500);
+}
+
 /* ── Rotating text ── */
 {
   const slides = document.querySelectorAll('.txt-slide');
-  let cur = 0, gt = setTimeout(() => slides[0].classList.add('glow'), 1000);
+  let cur = 0, gt = null;
 
   const whiteOrb = document.getElementById('whiteOrb');
   whiteOrb.addEventListener('animationend', () => {
@@ -442,7 +473,12 @@ submitBtn.addEventListener('click', send);
     whiteOrb.style.animation = 'wh-breathe 8s ease-in-out infinite';
   });
 
-  setInterval(() => {
+  // UI 등장(4s) 후 glow 시작 + 로테이션 시작
+  setTimeout(() => {
+    gt = setTimeout(() => slides[0].classList.add('glow'), 1000);
+  }, 4000);
+
+  setTimeout(() => { setInterval(() => {
     if (gt) { clearTimeout(gt); gt = null; }
     slides[cur].classList.remove('active','glow');
     slides[cur].classList.add('exit');
@@ -453,8 +489,8 @@ submitBtn.addEventListener('click', send);
       slides[prev].classList.remove('exit');
       slides[cur].classList.add('active');
       gt = setTimeout(() => slides[cur].classList.add('glow'), 1000);
-    }, 1200);
-  }, 5000);
+    }, 500);
+  }, 5000); }, 4000);
 }
 </script>
 
@@ -496,10 +532,10 @@ function getSize(){
 
 let sz = getSize();
 const orbU = {
-  uTime:{value:0}, uStartup:{value:0},
+  uTime:{value:0}, uStartup:{value:0}, uSpin:{value:0}, uOrbGrow:{value:1.0},
   uColor1:{value:new THREE.Color(0xFF5C00)}, uColor2:{value:new THREE.Color(0xFF8EFF)},
   uColor3:{value:new THREE.Color(0x00ADFF)}, uColor4:{value:new THREE.Color(0x8364FF)},
-  uOrbSpeed:{value:.5}, uCubeH:{value:sz.h}
+  uOrbSpeed:{value:2.0}, uCubeH:{value:sz.h}
 };
 
 const mat = new THREE.MeshPhysicalMaterial({
@@ -513,7 +549,7 @@ mat.onBeforeCompile = sh => {
   sh.vertexShader = 'varying vec3 vWP;\n'+sh.vertexShader;
   sh.vertexShader = sh.vertexShader.replace('#include <worldpos_vertex>',
     `#include <worldpos_vertex>\nvWP=(modelMatrix*vec4(position,1.)).xyz;`);
-  sh.fragmentShader = `uniform float uTime,uStartup,uOrbSpeed,uCubeH;
+  sh.fragmentShader = `uniform float uTime,uStartup,uSpin,uOrbSpeed,uOrbGrow,uCubeH;
 uniform vec3 uColor1,uColor2,uColor3,uColor4;
 varying vec3 vWP;\n`+sh.fragmentShader;
   sh.fragmentShader = sh.fragmentShader.replace('#include <dithering_fragment>',
@@ -526,20 +562,25 @@ varying vec3 vWP;\n`+sh.fragmentShader;
   gl_FragColor.rgb=dk+rfl*ra;
   float t=uTime*uOrbSpeed,hH=uCubeH*.5,sR=hH;
   float br=sin(t*.3)*.5+.5,bSp=mix(.35,.7,br*br),sp=bSp*uStartup;
-  float cx=(sin(t*.19)*.25+cos(t*.11)*.15)*sR*.3*uStartup;
-  float cy=(cos(t*.15)*.2+sin(t*.09)*.1)*sR*.3*uStartup;
-  float oD=sR*.4*uStartup,spn=(1.-uStartup)*3.14159,wb=sp*sR*.3;
+  float cx=(sin(t*.19)*.25+cos(t*.11)*.15)*sR*.25*uStartup;
+  float cy=(cos(t*.15)*.2+sin(t*.09)*.1)*sR*.25*uStartup;
+  float oD=sR*.48*uStartup,spn=uSpin,wb=sp*sR*.36;
   float a1=spn,a2=spn+1.5708,a3=spn+3.14159,a4=spn+4.71239;
   float ox1=cx+oD*cos(a1)+sin(t*.53)*wb,oy1=cy+oD*sin(a1)+cos(t*.41)*wb*.7;
+  ox1=clamp(ox1,-sR*.65,sR*.65); oy1=clamp(oy1,-sR*.65,sR*.65);
   vec3 o1=vec3(ox1,oy1,sqrt(max(sR*sR-ox1*ox1-oy1*oy1,.01)));
-  float ox2=cx+oD*cos(a2)+sin(t*.47)*wb*.9,oy2=cy+oD*sin(a2)+cos(t*.57)*wb*.8;
+  float ox2=cx+oD*cos(a2)+sin(t*.47+2.1)*wb*.9,oy2=cy+oD*sin(a2)+cos(t*.57+1.3)*wb*.8;
+  ox2=clamp(ox2,-sR*.65,sR*.65); oy2=clamp(oy2,-sR*.65,sR*.65);
   vec3 o2=vec3(ox2,oy2,sqrt(max(sR*sR-ox2*ox2-oy2*oy2,.01)));
-  float ox3=cx+oD*cos(a3)+cos(t*.61)*wb,oy3=cy+oD*sin(a3)+sin(t*.37)*wb*.7;
+  float ox3=cx+oD*cos(a3)+cos(t*.61+4.2)*wb,oy3=cy+oD*sin(a3)+sin(t*.37+3.7)*wb*.7;
+  ox3=clamp(ox3,-sR*.65,sR*.65); oy3=clamp(oy3,-sR*.65,sR*.65);
   vec3 o3=vec3(ox3,oy3,sqrt(max(sR*sR-ox3*ox3-oy3*oy3,.01)));
-  float ox4=cx+oD*cos(a4)+cos(t*.43)*wb*.85,oy4=cy+oD*sin(a4)+sin(t*.51)*wb*.75;
+  float ox4=cx+oD*cos(a4)+cos(t*.43+5.8)*wb*.85,oy4=cy+oD*sin(a4)+sin(t*.51+6.1)*wb*.75;
+  ox4=clamp(ox4,-sR*.65,sR*.65); oy4=clamp(oy4,-sR*.65,sR*.65);
   vec3 o4=vec3(ox4,oy4,sqrt(max(sR*sR-ox4*ox4-oy4*oy4,.01)));
-  float b1=hH*.07*(1.+.15*sin(t*.29)),b2=hH*.061*(1.+.14*sin(t*.37+1.5));
-  float b3=hH*.066*(1.+.12*sin(t*.43+3.2)),b4=hH*.064*(1.+.16*sin(t*.33+4.8));
+  float bg=uOrbGrow;
+  float b1=hH*.0455*(1.+.15*sin(t*.29))*bg,b2=hH*.0293*(1.+.14*sin(t*.37+1.5))*bg;
+  float b3=hH*.0429*(1.+.12*sin(t*.43+3.2))*bg,b4=hH*.0416*(1.+.16*sin(t*.33+4.8))*bg;
   float f1=exp(-dot(o1-vWP,o1-vWP)/(20.*b1*b1)),f2=exp(-dot(o2-vWP,o2-vWP)/(20.*b2*b2));
   float f3=exp(-dot(o3-vWP,o3-vWP)/(20.*b3*b3)),f4=exp(-dot(o4-vWP,o4-vWP)/(20.*b4*b4));
   float fc=dot(nV,vec3(0,0,1)),mk=.4+smoothstep(-.2,.2,fc)*.6;
@@ -568,18 +609,56 @@ window.addEventListener('resize', () => {
 const clock=new THREE.Clock();
 const FI=1000/30;
 let lf=0;
+const INTRO_DUR = 3.0; // 인트로 3초
 (function anim(now){
   requestAnimationFrame(anim);
   if(now-lf<FI)return;
   lf=now;
   const dt=clock.getElapsedTime();
   orbU.uTime.value=dt;
-  const sr=Math.min(dt/1.8,1),se=1-Math.pow(1-sr,2.5);
-  orbU.uStartup.value=se;
-  const s=1.5-.5*se;
+
+  // 하나의 연속 곡선: 흩어짐→회전하며 뭉침→같은 방향으로 풀어짐
+  const t = Math.min(dt / INTRO_DUR, 1.0); // 0→1 정규화
+
+  // ── Spread: 1→0.15→1 (뭉쳐도 살짝 떨어져서 회전 보임) ──
+  const midT = 0.35, minSpread = 0.15;
+  let spread;
+  if (t < midT) {
+    const p = t / midT;
+    const ss = p * p * (3.0 - 2.0 * p);
+    spread = 1.0 - ss * (1.0 - minSpread); // 1→0.15
+  } else {
+    const p = (t - midT) / (1.0 - midT);
+    const ss = p * p * (3.0 - 2.0 * p);
+    spread = minSpread + ss * (1.0 - minSpread); // 0.15→1
+  }
+
+  // ── Spin: 항상 시계방향, 빠르게 시작→감속 (총 4바퀴) ──
+  const spinEase = 1.0 - Math.pow(1.0 - t, 3.0); // ease-out cubic
+  const spin = 6.0 * Math.PI * spinEase; // 총 3회전 (6π)
+
+  // ── Speed: 뭉칠때 최고속→안정 ──
+  const speedCurve = 1.0 - Math.pow(1.0 - t, 2.0); // ease-out
+  const speed = 8.0 - 6.0 * speedCurve; // 8→2.0
+
+  // ── OrbGrow: 뭉침 이후 퍼지면서 50% 커짐 ──
+  let grow = 1.0;
+  if (t > midT) {
+    const gp = (t - midT) / (1.0 - midT);
+    grow = 1.0 + 0.5 * gp * gp * (3.0 - 2.0 * gp); // smoothstep 1→1.5
+  }
+
+  orbU.uStartup.value = spread;
+  orbU.uOrbSpeed.value = speed;
+  orbU.uSpin.value = spin;
+  orbU.uOrbGrow.value = grow;
+
+  // 스케일: 크게→안정
+  const sr = Math.min(dt/INTRO_DUR,1), se = 1-Math.pow(1-sr,3);
+  const s = 1.6 - 0.6 * se;
   cube.scale.set(s,s,s);
-  cube.rotation.y=dt*.05;
-  cube.rotation.x=Math.sin(dt*.04)*.08;
+  cube.rotation.y = dt * 0.05;
+  cube.rotation.x = Math.sin(dt * 0.04) * 0.08;
   renderer.render(scene,camera);
 })(0);
 </script>
