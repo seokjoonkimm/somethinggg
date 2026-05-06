@@ -57,6 +57,11 @@
     box-shadow:inset 0 1px 3px rgba(255,255,255,.3),inset 0 -1px 2px rgba(0,0,0,.03),inset 2px 0 4px rgba(255,255,255,.07),inset -2px 0 4px rgba(255,255,255,.07),0 0 8px rgba(255,255,255,.15);
   }
   .cta-btn:active{transform:scale(.97)}
+  /* CTA shine sweep */
+  .cta-btn .cta-shine{position:absolute;inset:0;border-radius:9999px;pointer-events:none;z-index:2;overflow:hidden}
+  .cta-btn .cta-shine::after{content:'';position:absolute;top:-50%;left:-80%;width:60%;height:200%;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.6) 50%,transparent 70%);transform:skewX(-20deg);opacity:0}
+  .cta-area.show .cta-btn .cta-shine::after{animation:cta-shine-sweep 1.2s ease 5.8s forwards}
+  @keyframes cta-shine-sweep{0%{left:-80%;opacity:.8}100%{left:130%;opacity:0}}
 
   /* ── Guide text ── */
   .text-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;gap:22px;padding-bottom:44px}
@@ -163,7 +168,7 @@ AX 문화가 궁금해</div></div>
     </div>
   </div>
   <div class="cta-area">
-    <label class="cta-btn" id="ctaBtn" for="hiddenInput"><div class="cta-mask"></div><span style="position:relative;z-index:2">엔노이아에게 질문하기</span></label>
+    <label class="cta-btn" id="ctaBtn" for="hiddenInput"><div class="cta-mask"></div><div class="cta-shine"></div><span style="position:relative;z-index:3">엔노이아에게 질문하기</span></label>
   </div>
 </div>
 
@@ -332,11 +337,14 @@ function showSuccessToast() {
   resetOverlay();
   overlay.style.justifyContent = 'center';
 
-  // 타이핑 디스플레이 페이드아웃
-  typingDisplay.style.transition = 'opacity .5s ease,transform .5s ease,filter .5s ease';
+  // 타이핑 디스플레이 페이드아웃 (위로 크게 올라가면서 블러+축소)
+  typingDisplay.style.transition = 'opacity .7s cubic-bezier(.4,0,.2,1), transform .7s cubic-bezier(.4,0,.2,1), filter .7s cubic-bezier(.4,0,.2,1)';
   typingDisplay.style.opacity = '0';
-  typingDisplay.style.transform = 'translateY(-24px)';
-  typingDisplay.style.filter = 'blur(8px)';
+  typingDisplay.style.transform = 'translateY(-60px) scale(0.92)';
+  typingDisplay.style.filter = 'blur(16px)';
+
+  // ★ 인트로급 임팩트: 오브 모이고 회전 + whiteOrb 사라짐
+  if (window.triggerOrbImpact) window.triggerOrbImpact();
 
   setTimeout(() => {
     typingDisplay.style.display = 'none';
@@ -350,8 +358,35 @@ function showSuccessToast() {
   // 5초 뒤 퇴장 → 홈으로 복귀
   setTimeout(() => {
     sentToast.classList.add('exit');
+    if (window.endOrbImpact) window.endOrbImpact();
     setTimeout(() => {
+      // 순차 페이드인 복귀: compose 해제 전 요소들 숨기고 순차 등장
+      const cont = document.querySelector('.container');
+      const guideLabel = document.querySelector('.guide-label');
+      const exampleArea = document.querySelector('.example-area');
+      const ctaArea = document.querySelector('.cta-area');
+
+      // 먼저 show 클래스 제거해서 숨김
+      guideLabel.classList.remove('show');
+      exampleArea.classList.remove('show');
+      ctaArea.classList.remove('show');
+      cont.style.opacity = '0';
+      cont.style.filter = 'blur(20px)';
+
       document.body.classList.remove('compose');
+      if (window.resetSlides) window.resetSlides();
+
+      // 순차 페이드인 (인트로처럼)
+      requestAnimationFrame(() => {
+        cont.style.transition = 'opacity .7s ease, filter .7s ease';
+        cont.style.opacity = '1';
+        cont.style.filter = 'blur(0)';
+        setTimeout(() => guideLabel.classList.add('show'), 200);
+        setTimeout(() => exampleArea.classList.add('show'), 500);
+        setTimeout(() => ctaArea.classList.add('show'), 800);
+        setTimeout(() => { cont.style.cssText = ''; }, 1500);
+      });
+
       setTimeout(() => {
         typingDisplay.style.cssText = '';
         typingDisplay.style.display = '';
@@ -406,7 +441,7 @@ async function send() {
 /* ── Rotating text ── */
 {
   const slides = document.querySelectorAll('.txt-slide');
-  let cur = 0, gt = null;
+  let cur = 0, gt = null, rotInterval = null;
 
   const whiteOrb = document.getElementById('whiteOrb');
   whiteOrb.addEventListener('animationend', () => {
@@ -415,24 +450,40 @@ async function send() {
     whiteOrb.style.animation = 'wh-breathe 8s ease-in-out infinite';
   });
 
-  // UI 등장(4s) 후 glow 시작 + 로테이션 시작
+  function startRotation() {
+    if (rotInterval) clearInterval(rotInterval);
+    if (gt) clearTimeout(gt);
+    gt = setTimeout(() => slides[cur].classList.add('glow'), 1000);
+    rotInterval = setInterval(() => {
+      if (gt) { clearTimeout(gt); gt = null; }
+      slides[cur].classList.remove('active','glow');
+      slides[cur].classList.add('exit');
+      const prev = cur;
+      let next; do { next = Math.floor(Math.random() * slides.length); } while (next === cur);
+      cur = next;
+      setTimeout(() => {
+        slides[prev].classList.remove('exit');
+        slides[cur].classList.add('active');
+        gt = setTimeout(() => slides[cur].classList.add('glow'), 1000);
+      }, 500);
+    }, 5000);
+  }
+
+  // 전역: 토스트 복귀 시 리셋
+  window.resetSlides = function() {
+    if (rotInterval) clearInterval(rotInterval);
+    if (gt) clearTimeout(gt);
+    slides.forEach(s => s.classList.remove('active','glow','exit'));
+    cur = 0;
+    slides[0].classList.add('active');
+    setTimeout(() => startRotation(), 1500);
+  };
+
+  // 인트로 후 시작
   setTimeout(() => {
     gt = setTimeout(() => slides[0].classList.add('glow'), 1000);
   }, 4000);
-
-  setTimeout(() => { setInterval(() => {
-    if (gt) { clearTimeout(gt); gt = null; }
-    slides[cur].classList.remove('active','glow');
-    slides[cur].classList.add('exit');
-    const prev = cur;
-    let next; do { next = Math.floor(Math.random() * slides.length); } while (next === cur);
-    cur = next;
-    setTimeout(() => {
-      slides[prev].classList.remove('exit');
-      slides[cur].classList.add('active');
-      gt = setTimeout(() => slides[cur].classList.add('glow'), 1000);
-    }, 500);
-  }, 5000); }, 4000);
+  setTimeout(() => startRotation(), 4000);
 }
 </script>
 
@@ -551,7 +602,69 @@ window.addEventListener('resize', () => {
 const clock=new THREE.Clock();
 const FI=1000/30;
 let lf=0;
-const INTRO_DUR = 3.0; // 인트로 3초
+const INTRO_DUR = 3.0;
+const TOAST_DUR = 2.5; // 토스트 임팩트 모션 길이
+let toastImpactStart = -1; // -1 = 비활성
+let baseSpinOffset = 0; // 인트로 끝난 후 spin 기준값
+
+// 전역 트리거 함수 (showSuccessToast에서 호출)
+window.triggerOrbImpact = function() {
+  const dt = clock.getElapsedTime();
+  baseSpinOffset = orbU.uSpin.value; // 현재 spin 이어가기
+  toastImpactStart = dt;
+  // whiteOrb 페이드아웃
+  const orb = document.getElementById('whiteOrb');
+  orb.style.transition = 'opacity .6s ease';
+  orb.style.opacity = '0';
+  // 캔버스 밝게
+  const cv = document.getElementById('cubeCanvas');
+  cv.style.transition = 'opacity .5s ease';
+  cv.style.opacity = '1';
+  // 오브 모션 끝나면 whiteOrb 빠르게 복귀
+  setTimeout(() => {
+    orb.style.transition = 'opacity .8s ease';
+    orb.style.opacity = '1';
+    cv.style.transition = 'opacity .8s ease';
+    cv.style.opacity = '1';
+  }, 1300);
+};
+window.endOrbImpact = function() {
+  // whiteOrb 복귀
+  const orb = document.getElementById('whiteOrb');
+  orb.style.transition = 'opacity 1s ease';
+  orb.style.opacity = '1';
+  // 캔버스 복귀
+  const cv = document.getElementById('cubeCanvas');
+  cv.style.transition = 'opacity .8s ease';
+  cv.style.opacity = '1';
+  // bloomLayer 복귀
+  const bl = document.getElementById('bloomLayer');
+  bl.style.transition = 'opacity .8s ease';
+  bl.style.opacity = '1';
+  toastImpactStart = -1;
+};
+
+function calcMotion(t, spinTotal) {
+  const midT = 0.35, minSpread = 0.15;
+  let spread;
+  if (t < midT) {
+    const p = t / midT, ss = p*p*(3-2*p);
+    spread = 1 - ss*(1-minSpread);
+  } else {
+    const p = (t-midT)/(1-midT), ss = p*p*(3-2*p);
+    spread = minSpread + ss*(1-minSpread);
+  }
+  const spinEase = 1 - Math.pow(1-t,3);
+  const spin = spinTotal*Math.PI*spinEase;
+  const speedCurve = 1 - Math.pow(1-t,2);
+  const speed = 8 - 6*speedCurve;
+  let grow = 1;
+  if (t > midT) { const gp=(t-midT)/(1-midT); grow=1+0.5*gp*gp*(3-2*gp); }
+  const sr = t, se = 1-Math.pow(1-sr,3);
+  const s = 1.6 - 0.6*se;
+  return {spread, spin, speed, grow, s};
+}
+
 (function anim(now){
   requestAnimationFrame(anim);
   if(now-lf<FI)return;
@@ -559,35 +672,24 @@ const INTRO_DUR = 3.0; // 인트로 3초
   const dt=clock.getElapsedTime();
   orbU.uTime.value=dt;
 
-  // 하나의 연속 곡선: 흩어짐→회전하며 뭉침→같은 방향으로 풀어짐
-  const t = Math.min(dt / INTRO_DUR, 1.0); // 0→1 정규화
+  let spread, spin, speed, grow, s;
 
-  // ── Spread: 1→0.15→1 (뭉쳐도 살짝 떨어져서 회전 보임) ──
-  const midT = 0.35, minSpread = 0.15;
-  let spread;
-  if (t < midT) {
-    const p = t / midT;
-    const ss = p * p * (3.0 - 2.0 * p);
-    spread = 1.0 - ss * (1.0 - minSpread); // 1→0.15
+  if (toastImpactStart > 0) {
+    // ★ 토스트 임팩트 모션 재생
+    const tt = Math.min((dt - toastImpactStart) / TOAST_DUR, 1.0);
+    const m = calcMotion(tt, 3);
+    spread = m.spread; speed = m.speed; grow = m.grow; s = m.s;
+    spin = baseSpinOffset + m.spin; // 현재 회전에서 이어서 추가 회전
+    if (tt >= 1.0) { toastImpactStart = -1; } // 모션 완료
+  } else if (dt < INTRO_DUR) {
+    // 인트로 모션
+    const t = dt / INTRO_DUR;
+    const m = calcMotion(t, 6);
+    spread = m.spread; spin = m.spin; speed = m.speed; grow = m.grow; s = m.s;
   } else {
-    const p = (t - midT) / (1.0 - midT);
-    const ss = p * p * (3.0 - 2.0 * p);
-    spread = minSpread + ss * (1.0 - minSpread); // 0.15→1
-  }
-
-  // ── Spin: 항상 시계방향, 빠르게 시작→감속 (총 4바퀴) ──
-  const spinEase = 1.0 - Math.pow(1.0 - t, 3.0); // ease-out cubic
-  const spin = 6.0 * Math.PI * spinEase; // 총 3회전 (6π)
-
-  // ── Speed: 뭉칠때 최고속→안정 ──
-  const speedCurve = 1.0 - Math.pow(1.0 - t, 2.0); // ease-out
-  const speed = 8.0 - 6.0 * speedCurve; // 8→2.0
-
-  // ── OrbGrow: 뭉침 이후 퍼지면서 50% 커짐 ──
-  let grow = 1.0;
-  if (t > midT) {
-    const gp = (t - midT) / (1.0 - midT);
-    grow = 1.0 + 0.5 * gp * gp * (3.0 - 2.0 * gp); // smoothstep 1→1.5
+    // 안정 상태
+    spread = 1.0; speed = 2.0; grow = 1.5; s = 1.0;
+    spin = orbU.uSpin.value + 0.001; // 천천히 회전 유지
   }
 
   orbU.uStartup.value = spread;
@@ -595,9 +697,6 @@ const INTRO_DUR = 3.0; // 인트로 3초
   orbU.uSpin.value = spin;
   orbU.uOrbGrow.value = grow;
 
-  // 스케일: 크게→안정
-  const sr = Math.min(dt/INTRO_DUR,1), se = 1-Math.pow(1-sr,3);
-  const s = 1.6 - 0.6 * se;
   cube.scale.set(s,s,s);
   cube.rotation.y = dt * 0.05;
   cube.rotation.x = Math.sin(dt * 0.04) * 0.08;
