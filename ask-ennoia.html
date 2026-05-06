@@ -100,7 +100,7 @@
   .compose-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:env(safe-area-inset-top,0px) 24px env(safe-area-inset-bottom,0px);opacity:0;pointer-events:none;transition:opacity .7s ease,height .3s ease}
   body.compose .compose-overlay{opacity:1;pointer-events:auto}
 
-  .typing-display{font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.5;letter-spacing:-.04em;text-align:center;width:85%;min-height:60px;position:relative;word-break:keep-all;overflow-wrap:break-word;color:rgba(34,34,34,.85)}
+  .typing-display{font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.5;letter-spacing:-.04em;text-align:center;width:85%;min-height:60px;position:relative;word-break:keep-all;overflow-wrap:break-word;color:rgba(34,34,34,.85);margin-top:10px}
   .typing-display .char{display:inline;color:rgba(34,34,34,.85)}
   @keyframes type-pulse{0%{color:rgba(131,100,255,.7)}100%{color:rgba(34,34,34,.85)}}
   .typing-display .cursor{display:inline-block;width:1.5px;height:1em;background:rgba(131,100,255,.5);margin-left:2px;animation:cursor-blink 1.2s ease-in-out infinite;vertical-align:text-bottom}
@@ -163,18 +163,18 @@
   <div class="text-area">
     <div class="guide-label">엔노이아에게 질문해 보세요</div>
     <div class="example-area">
-      <div class="txt-slide active"><span class="txt-base">우리의 일은
-AI에게 대체될 수 있을까?</span><div class="txt-glow">우리의 일은
+      <div class="txt-slide active"><span class="txt-base">사람은
+AI에게 대체될 수 있을까?</span><div class="txt-glow">사람은
 AI에게 대체될 수 있을까?</div></div>
       <div class="txt-slide"><span class="txt-base">하이파이브 2026의
-핵심 주제는 뭐야?</span><div class="txt-glow">하이파이브 2026의
-핵심 주제는 뭐야?</div></div>
+주제는 뭐야?</span><div class="txt-glow">하이파이브 2026의
+주제는 뭐야?</div></div>
       <div class="txt-slide"><span class="txt-base">원티드랩의
 AX 문화가 궁금해</span><div class="txt-glow">원티드랩의
 AX 문화가 궁금해</div></div>
-      <div class="txt-slide"><span class="txt-base">3년 차 브랜드디자이너에게
-이직 꿀팁 알려줘</span><div class="txt-glow">3년 차 브랜드디자이너에게
-이직 꿀팁 알려줘</div></div>
+      <div class="txt-slide"><span class="txt-base">3년 차 브랜드 디자이너
+이직 꿀팁은?</span><div class="txt-glow">3년 차 브랜드 디자이너
+이직 꿀팁은?</div></div>
       <div class="txt-slide"><span class="txt-base">엔노이아는
 무슨 뜻이야?</span><div class="txt-glow">엔노이아는
 무슨 뜻이야?</div></div>
@@ -307,15 +307,23 @@ document.querySelector('.compose-overlay').addEventListener('click', () => {
   if (isComposing) hiddenInput.focus();
 });
 hiddenInput.addEventListener('compositionstart', () => { isIME = true; });
-hiddenInput.addEventListener('compositionend', () => { isIME = false; });
 
-// Enter 전송 — keydown에서 IME 아닐때, keyup에서 IME 직후 모두 대응
+// Enter 전송 — keydown + beforeinput + compositionend 모두 대응
 let enterPending = false;
+let sendLock = false; // 중복 전송 방지
+
+function trySend() {
+  if (sendLock) return;
+  sendLock = true;
+  setTimeout(() => { sendLock = false; }, 300);
+  send();
+}
+
 hiddenInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     if (!isIME) {
-      send();
+      trySend();
     } else {
       enterPending = true;
     }
@@ -324,7 +332,26 @@ hiddenInput.addEventListener('keydown', e => {
 hiddenInput.addEventListener('keyup', e => {
   if (enterPending && e.key === 'Enter') {
     enterPending = false;
-    setTimeout(() => send(), 0);
+    setTimeout(() => trySend(), 0);
+  }
+});
+// 모바일에서 keydown이 안 오는 경우 beforeinput으로 잡기
+hiddenInput.addEventListener('beforeinput', e => {
+  if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') {
+    e.preventDefault();
+    if (!isIME) {
+      trySend();
+    } else {
+      enterPending = true;
+    }
+  }
+});
+// IME 조합 중 Enter → compositionend 후 전송
+hiddenInput.addEventListener('compositionend', () => {
+  isIME = false;
+  if (enterPending) {
+    enterPending = false;
+    setTimeout(() => trySend(), 10);
   }
 });
 
@@ -406,11 +433,16 @@ async function send() {
   const blocked = checkBlocked(text);
   if (blocked) {
     hiddenInput.value = ''; prevLen = 0;
-    typingDisplay.innerHTML = '<span class="cursor"></span>';
     const msg = blocked === 'profanity'
       ? '부적절한 질문은<br>답변할 수 없어요'
       : '질문에만 답변할 수 있어요';
-    showToast(msg, null, 2500, toastThenRestore); return;
+    // 키보드 안 내리고 타이핑 영역에 직접 메시지 표시
+    typingDisplay.innerHTML = `<span style="color:rgba(34,34,34,.4);font-size:clamp(14px, 4vw, 17px);font-weight:600;letter-spacing:-.02em;line-height:1.35">${msg}</span>`;
+    setTimeout(() => {
+      typingDisplay.innerHTML = '<span class="cursor"></span>';
+      hiddenInput.focus();
+    }, 2000);
+    return;
   }
   // 전송
   isComposing = false;
