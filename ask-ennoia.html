@@ -225,7 +225,20 @@ if (window.visualViewport) {
 }
 
 /* ── Compose mode ── */
+let composeLock = false;
 function enterCompose() {
+  if (composeLock) return;
+  composeLock = true;
+  setTimeout(() => { composeLock = false; }, 400);
+
+  // iOS CRITICAL: focus() must be the VERY FIRST thing in user gesture.
+  // ANY DOM manipulation before focus() breaks the gesture chain and keyboard won't open.
+  document.body.classList.add('compose');   // make textarea interactable (z-index/pointer-events)
+  hiddenInput.readOnly = true;             // prevent iOS zoom on 16px input
+  hiddenInput.focus();                     // ← MUST be in direct user gesture, before any DOM changes
+  hiddenInput.readOnly = false;
+
+  // Now safe to do DOM cleanup (keyboard is already triggered)
   isComposing = true;
   hiddenInput.value = '';
   prevLen = 0;
@@ -235,12 +248,6 @@ function enterCompose() {
   sentToast.innerHTML = '';
   submitBtn.disabled = true;
   composeControls.style.cssText = '';
-  // iOS: textarea must be interactable (not pointer-events:none) BEFORE focus
-  document.body.classList.add('compose');
-  // iOS: readOnly trick prevents zoom, focus grabs keyboard in user gesture
-  hiddenInput.readOnly = true;
-  hiddenInput.focus();
-  setTimeout(() => { hiddenInput.readOnly = false; }, 50);
 }
 function exitCompose() {
   isComposing = false;
@@ -259,8 +266,10 @@ function exitCompose() {
   }, 700);
 }
 
+// iOS: use touchend (fires before click, more reliable for keyboard).
+// composeLock prevents double-fire from touchend+click.
+ctaBtn.addEventListener('touchend', (e) => { e.preventDefault(); enterCompose(); }, {passive:false});
 ctaBtn.addEventListener('click', enterCompose);
-ctaBtn.addEventListener('touchend', (e) => { e.preventDefault(); enterCompose(); });
 cancelBtn.addEventListener('click', exitCompose);
 
 /* ── Typing display ── */
@@ -279,8 +288,11 @@ hiddenInput.addEventListener('input', () => {
   submitBtn.disabled = !text.trim();
 });
 
-hiddenInput.addEventListener('blur', () => {
-  if (isComposing) setTimeout(() => { hiddenInput.readOnly = true; hiddenInput.focus(); setTimeout(() => { hiddenInput.readOnly = false; }, 50); }, 100);
+// iOS: don't auto-refocus on blur (causes keyboard open/close loop).
+// Instead, let user tap the compose overlay to refocus.
+hiddenInput.addEventListener('blur', () => {});
+document.querySelector('.compose-overlay').addEventListener('touchend', () => {
+  if (isComposing) { hiddenInput.readOnly = true; hiddenInput.focus(); hiddenInput.readOnly = false; }
 });
 hiddenInput.addEventListener('compositionstart', () => { isIME = true; });
 hiddenInput.addEventListener('compositionend', () => { isIME = false; });
