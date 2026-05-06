@@ -8,10 +8,9 @@
   @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
 
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html{height:100%;overflow:hidden}
-  body{height:100%;height:100dvh;font-family:'Pretendard',system-ui,-apple-system,sans-serif;background:#fff;color:#222;overflow:hidden;touch-action:manipulation;
-    padding:0;
-    padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);
+  html,body{height:100%;height:-webkit-fill-available;overflow:hidden}
+  body{min-height:100dvh;min-height:-webkit-fill-available;font-family:'Pretendard',system-ui,-apple-system,sans-serif;background:#fff;color:#222;overflow:hidden;touch-action:manipulation;
+    padding:0;margin:0;
     opacity:0;filter:blur(20px);animation:page-enter 0.8s ease forwards}
   @keyframes page-enter{to{opacity:1;filter:blur(0)}}
 
@@ -22,7 +21,7 @@
   @keyframes intro-up{to{opacity:1;transform:translateY(0)}}
 
   /* ── Layout ── */
-  .container{display:flex;flex-direction:column;height:100%;padding:0 24px 0;transition:opacity .7s ease,filter .7s ease;position:relative;z-index:10}
+  .container{display:flex;flex-direction:column;height:100%;height:100dvh;height:-webkit-fill-available;padding:env(safe-area-inset-top,0px) 24px env(safe-area-inset-bottom,0px);transition:opacity .7s ease,filter .7s ease;position:relative;z-index:10}
   body.compose .container{opacity:0;filter:blur(20px);pointer-events:none}
 
   /* ── CTA button — Liquid Glass ── */
@@ -31,12 +30,12 @@
   .cta-btn{
     display:block;text-align:center;
     position:relative;width:100%;padding:20px 0;border-radius:9999px;border:none;
-    background:rgba(255,255,255,.2);
-    backdrop-filter:blur(60px) saturate(2.5) brightness(1.1) contrast(1.1);
-    -webkit-backdrop-filter:blur(60px) saturate(2.5) brightness(1.1) contrast(1.1);
-    color:rgba(0,0,0,.6);font-family:inherit;font-size:16px;font-weight:600;
+    background:rgba(255,255,255,.08);
+    backdrop-filter:blur(40px) saturate(4) brightness(1.15) contrast(1.2);
+    -webkit-backdrop-filter:blur(40px) saturate(4) brightness(1.15) contrast(1.2);
+    color:rgba(0,0,0,.7);font-family:inherit;font-size:16px;font-weight:700;
     letter-spacing:-.02em;cursor:pointer;transition:all .3s;
-    box-shadow:0 2px 8px rgba(0,0,0,.05),0 8px 32px rgba(0,0,0,.03);overflow:hidden;
+    box-shadow:0 2px 12px rgba(0,0,0,.06),0 8px 32px rgba(0,0,0,.04);overflow:hidden;
   }
   .cta-btn::before{
     content:'';position:absolute;inset:0;border-radius:9999px;pointer-events:none;
@@ -51,12 +50,12 @@
   .cta-btn:active{transform:scale(.97)}
 
   /* ── Guide text ── */
-  .text-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;gap:28px;margin-top:-2vh}
+  .text-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;gap:28px}
   .guide-label{font-size:clamp(14px, 4vw, 17px);font-weight:600;letter-spacing:-.02em;color:rgba(34,34,34,.4);text-align:center}
 
   /* ── Rolling questions ── */
   .example-area{position:relative;width:88%;min-height:140px;display:flex;align-items:flex-start;justify-content:center}
-  .txt-slide{position:absolute;top:0;font-size:clamp(22px, 6.5vw, 30px);font-weight:600;line-height:1.5;letter-spacing:-.04em;white-space:pre-line;text-align:center;width:100%;opacity:0;filter:blur(8px);transition:opacity 1.5s ease,filter 1.5s ease;word-break:keep-all;overflow-wrap:break-word}
+  .txt-slide{position:absolute;top:0;font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.5;letter-spacing:-.04em;white-space:pre-line;text-align:center;width:100%;opacity:0;filter:blur(8px);transition:opacity 1.5s ease,filter 1.5s ease;word-break:keep-all;overflow-wrap:break-word}
   .txt-slide.active{opacity:1;filter:blur(0)}
   .txt-slide.exit{opacity:0;filter:blur(8px)}
   .txt-slide .txt-base{color:rgba(34,34,34,.85)}
@@ -89,10 +88,10 @@
   @keyframes wh-breathe{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.12)}100%{transform:translate(-50%,-50%) scale(1)}}
 
   /* ── Compose overlay ── */
-  .compose-overlay{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .7s ease}
+  .compose-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:env(safe-area-inset-top,0px) 24px env(safe-area-inset-bottom,0px);opacity:0;pointer-events:none;transition:opacity .7s ease}
   body.compose .compose-overlay{opacity:1;pointer-events:auto}
 
-  .typing-display{font-size:clamp(20px, 5.5vw, 26px);font-weight:600;line-height:1.6;letter-spacing:-.04em;text-align:center;width:85%;min-height:80px;position:relative;margin-bottom:0;word-break:keep-all;overflow-wrap:break-word;color:rgba(34,34,34,.85)}
+  .typing-display{font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.5;letter-spacing:-.04em;text-align:center;width:85%;min-height:80px;position:relative;margin-bottom:0;word-break:keep-all;overflow-wrap:break-word;color:rgba(34,34,34,.85)}
   .typing-display .char{display:inline;color:rgba(34,34,34,.85)}
   @keyframes type-pulse{0%{color:rgba(131,100,255,.7)}100%{color:rgba(34,34,34,.85)}}
   .typing-display .cursor{display:inline-block;width:1.5px;height:1em;background:rgba(131,100,255,.5);margin-left:2px;animation:cursor-blink 1.2s ease-in-out infinite;vertical-align:text-bottom}
@@ -211,20 +210,17 @@ let isComposing = false, prevLen = 0, isIME = false;
 /* ── Keyboard handling (mobile) ── */
 if (window.visualViewport) {
   const overlay = document.querySelector('.compose-overlay');
-  window.visualViewport.addEventListener('resize', () => {
+  const syncOverlay = () => {
     if (!isComposing) return;
     const vvH = window.visualViewport.height;
-    const fullH = window.innerHeight;
-    const kbH = fullH - vvH;
-    if (kbH > 100) {
-      // 키보드 위 남은 영역에서 중앙 배치
-      overlay.style.height = vvH + 'px';
-      overlay.style.justifyContent = 'center';
-    } else {
-      overlay.style.height = '';
-      overlay.style.justifyContent = 'center';
-    }
-  });
+    const vvTop = window.visualViewport.offsetTop;
+    // 키보드 위 남은 영역에 overlay를 정확히 맞춤
+    overlay.style.top = vvTop + 'px';
+    overlay.style.height = vvH + 'px';
+    overlay.style.bottom = 'auto';
+  };
+  window.visualViewport.addEventListener('resize', syncOverlay);
+  window.visualViewport.addEventListener('scroll', syncOverlay);
 }
 
 /* ── Compose mode ── */
@@ -246,6 +242,7 @@ function exitCompose() {
   hiddenInput.blur();
   document.body.classList.remove('compose');
   // Reset after overlay transition
+  const overlay = document.querySelector('.compose-overlay');
   setTimeout(() => {
     typingDisplay.style.cssText = '';
     typingDisplay.innerHTML = '<span class="cursor"></span>';
@@ -253,8 +250,9 @@ function exitCompose() {
     sentToast.innerHTML = '';
     hiddenInput.value = '';
     prevLen = 0;
-    submitBtn.disabled = true;
-    composeControls.style.cssText = '';
+    overlay.style.top = '';
+    overlay.style.height = '';
+    overlay.style.bottom = '';
   }, 700);
 }
 
@@ -285,9 +283,19 @@ document.querySelector('.compose-overlay').addEventListener('click', () => {
   if (isComposing) hiddenInput.focus();
 });
 hiddenInput.addEventListener('compositionstart', () => { isIME = true; });
-hiddenInput.addEventListener('compositionend', () => { isIME = false; });
+hiddenInput.addEventListener('compositionend', () => {
+  isIME = false;
+});
 hiddenInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey && !isIME) { e.preventDefault(); send(); }
+  if (e.key === 'Enter' && !e.shiftKey) {
+    if (isIME) {
+      // IME 조합 중 엔터 — compositionend 후 다음 틱에서 전송
+      setTimeout(() => { if (!isIME) send(); }, 10);
+    } else {
+      e.preventDefault();
+      send();
+    }
+  }
 });
 
 /* ── Toast system ── */
@@ -331,7 +339,7 @@ const BLOCKED_WORDS = [
   '또라이','돌아이','또라히',
   '찐따','찐다','ㅉㄸ',
   '등신','멍청이','멍청','얼간이',
-  '개년','시발놈','썅','ㅆ','개소리','개같',
+  '개년','시발놈','썅','개소리','개같',
   '좆','ㅈ같','존나','졸라','ㅈㄴ','죤나','좃나',
   '엿먹','엿이나','꼴값','느금마','느금','니애미','니엄마','니미','ㄴㅁ',
   'fuck','shit','damn','bitch','asshole','bastard','dick','pussy','wtf','stfu','cunt','whore',
@@ -339,11 +347,8 @@ const BLOCKED_WORDS = [
   '앙기모띠','앙기모','앙기','기모띠','kimochi','야하','야해','변태','헨타이',
   '강간','성폭행','성추행','몰카','도촬','음란','야설',
   'sex','porn','nude','naked','hentai','xxx','nsfw','erotic',
-  '게이','레즈','트랜스젠더','호모','동성애','이성애','양성애','성소수자',
-  '흑인','백인','황인','인종','장애인','난민','조선족',
-  '한남','한녀','페미','꼴페미','메갈','일베','워마드','남혐','여혐',
-  '틀딱','꼰대','급식충','맘충','한남충','김치녀','된장녀',
-  '좌파','우파','빨갱이','수꼴','친일','종북','탈북','간첩',
+  '한남충','김치녀','된장녀','꼴페미','메갈','일베','워마드',
+  '틀딱','급식충','맘충',
 ];
 const CHO = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
 const BLOCKED_CHO = ['ㅅㅂ','ㅆㅂ','ㅂㅅ','ㅈㄹ','ㅁㅊ','ㅅㄲ','ㅈㄴ','ㅉㄸ','ㄴㅁ','ㅈㄱ'];
