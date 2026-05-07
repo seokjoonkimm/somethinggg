@@ -270,7 +270,8 @@ if (window.visualViewport) {
    Compose 모드 진입/퇴장
    ══════════════════════════════════════ */
 function enterCompose() {
-  if (isComposing || toastActive) return;
+  console.log('[DEBUG enterCompose] isComposing:', isComposing, 'toastActive:', toastActive, 'sendLock:', sendLock);
+  if (isComposing || toastActive) { console.log('[DEBUG enterCompose] ❌ 진입 차단됨!'); return; }
   isComposing = true;
   input.value = '';
   input.style.cssText = '';
@@ -302,7 +303,8 @@ function exitCompose() {
 cancelBtn.addEventListener('click', exitCompose);
 
 document.getElementById('ctaBtn').addEventListener('click', () => {
-  if (toastActive) return;
+  console.log('[DEBUG ctaBtn] click — toastActive:', toastActive);
+  if (toastActive) { console.log('[DEBUG ctaBtn] ❌ toastActive 차단'); return; }
   enterCompose();
 });
 
@@ -325,10 +327,12 @@ input.addEventListener('input', () => {
    전송
    ══════════════════════════════════════ */
 async function trySend() {
-  if (sendLock || toastActive) return;
+  console.log('[DEBUG trySend] sendLock:', sendLock, 'toastActive:', toastActive, 'text:', JSON.stringify(input.value.trim()));
+  if (sendLock || toastActive) { console.log('[DEBUG trySend] ❌ 전송 차단! sendLock:', sendLock, 'toastActive:', toastActive); return; }
   const text = input.value.trim();
-  if (!text) return;
+  if (!text) { console.log('[DEBUG trySend] ❌ 빈 텍스트'); return; }
   sendLock = true;
+  console.log('[DEBUG trySend] ✅ 전송 시작:', text);
   try {
     // 5초 타임아웃 — Firebase 연결 끊겼을 때 무한 대기 방지
     await Promise.race([
@@ -337,8 +341,9 @@ async function trySend() {
     ]);
     showSuccessToast();
   } catch(e) {
-    console.error('Firebase send error:', e);
+    console.error('[DEBUG trySend] ❌ 전송 실패:', e.message);
     sendLock = false;
+    console.log('[DEBUG trySend] 🔓 sendLock = false (에러 후 해제)');
     // 연결 끊김이면 재연결 시도
     firebase.database().goOffline();
     firebase.database().goOnline();
@@ -356,9 +361,9 @@ firebase.database().ref('.info/connected').on('value', (snap) => {
 
 // 전송 버튼 — touchend + click
 let btnTouching = false;
-sendBtn.addEventListener('touchstart', () => { btnTouching = true; }, { passive: true });
-sendBtn.addEventListener('touchend', (e) => { e.preventDefault(); btnTouching = false; trySend(); });
-sendBtn.addEventListener('click', (e) => { e.preventDefault(); if (!btnTouching) trySend(); });
+sendBtn.addEventListener('touchstart', () => { btnTouching = true; console.log('[DEBUG sendBtn] touchstart'); }, { passive: true });
+sendBtn.addEventListener('touchend', (e) => { e.preventDefault(); btnTouching = false; console.log('[DEBUG sendBtn] touchend → trySend'); trySend(); });
+sendBtn.addEventListener('click', (e) => { e.preventDefault(); console.log('[DEBUG sendBtn] click, btnTouching:', btnTouching); if (!btnTouching) trySend(); });
 
 // iOS Send 버튼 (form submit)
 document.getElementById('composeForm').addEventListener('submit', (e) => {
@@ -368,9 +373,11 @@ document.getElementById('composeForm').addEventListener('submit', (e) => {
 
 // 엔터키 — 줄바꿈 방지 + 즉시 전송 (isComposing 무시 — iOS에서 compositionend가 안 올 수 있음)
 input.addEventListener('keydown', (e) => {
+  console.log('[DEBUG keydown]', e.key, 'isComposing:', e.isComposing);
   if (e.key === 'Enter') {
     e.preventDefault();
-    setTimeout(trySend, 80); // 약간의 딜레이로 IME 커밋 대기
+    console.log('[DEBUG keydown] Enter → trySend 예약 (80ms)');
+    setTimeout(trySend, 80);
   }
 });
 
@@ -378,6 +385,7 @@ input.addEventListener('keydown', (e) => {
    성공 토스트
    ══════════════════════════════════════ */
 function showSuccessToast() {
+  console.log('[DEBUG toast] ✅ 전송 성공 → toastActive = true');
   isComposing = false;
   toastActive = true;
   document.body.classList.add('toast');
@@ -422,6 +430,7 @@ function showSuccessToast() {
 
       toastActive = false;
       sendLock = false;
+      console.log('[DEBUG toast] 🔓 toastActive = false, sendLock = false — 홈 복귀');
       document.body.classList.remove('compose', 'toast');
       sendBtn.classList.remove('has-text');
       if (window.resetSlides) window.resetSlides();
@@ -448,6 +457,20 @@ function showSuccessToast() {
     }, 800);
   }, 5000);
 }
+
+/* ══════════════════════════════════════
+   상태 워치독 (5초 주기)
+   ══════════════════════════════════════ */
+setInterval(() => {
+  const bodyClasses = document.body.className;
+  const ctaPointer = getComputedStyle(document.querySelector('.cta-area')).pointerEvents;
+  const overlayPointer = getComputedStyle(overlay).pointerEvents;
+  const sendBtnPointer = getComputedStyle(sendBtn).pointerEvents;
+  const sendBtnOpacity = getComputedStyle(sendBtn).opacity;
+  console.log('[WATCHDOG] isComposing:', isComposing, '| toastActive:', toastActive, '| sendLock:', sendLock,
+    '| body:', bodyClasses, '| cta-pointer:', ctaPointer, '| overlay-pointer:', overlayPointer,
+    '| sendBtn-pointer:', sendBtnPointer, '| sendBtn-opacity:', sendBtnOpacity);
+}, 5000);
 
 /* ══════════════════════════════════════
    인트로 시퀀스
