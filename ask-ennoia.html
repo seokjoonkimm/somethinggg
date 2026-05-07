@@ -9,7 +9,7 @@
 
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;height:-webkit-fill-available;overflow:hidden}
-  body{min-height:100dvh;min-height:-webkit-fill-available;font-family:'Pretendard',system-ui,-apple-system,sans-serif;background:#fff;color:#222;overflow:hidden;touch-action:manipulation;
+  body{min-height:100dvh;min-height:-webkit-fill-available;font-family:'Pretendard',system-ui,-apple-system,sans-serif;background:#fff;color:#222;overflow:hidden;touch-action:manipulation;letter-spacing:-.01em;
     padding:0;margin:0;
     opacity:0;filter:blur(20px);animation:page-enter 1.0s ease forwards}
   @keyframes page-enter{to{opacity:1;filter:blur(0)}}
@@ -23,12 +23,11 @@
   /* ── UI stagger (인트로 끝난 후) ── */
   .guide-label{opacity:0;translate:0 12px}
   .example-area{opacity:0;translate:0 12px}
-  .cta-area{opacity:0;translate:0 12px}
+  .cta-area{opacity:0;translate:0 12px;pointer-events:none}
+  .cta-area.show{pointer-events:auto}
   .guide-label.show,.example-area.show,.cta-area.show{opacity:1;translate:0 0;transition:opacity 1s ease,translate 1s ease}
   .cta-btn .cta-mask{position:absolute;inset:0;border-radius:9999px;background:#fff;opacity:1;transition:opacity 4s ease;pointer-events:none;z-index:1}
   .cta-area.show .cta-btn .cta-mask{opacity:0}
-  @keyframes intro-up{to{opacity:1;transform:translateY(0)}}
-
   /* ── Layout ── */
   .container{display:flex;flex-direction:column;height:100%;height:100dvh;height:-webkit-fill-available;padding:env(safe-area-inset-top,0px) 24px env(safe-area-inset-bottom,0px);transition:opacity .7s ease,filter .7s ease;position:relative;z-index:10}
   body.compose .container{opacity:0;filter:blur(20px);pointer-events:none}
@@ -65,7 +64,7 @@
 
   /* ── Guide text ── */
   .text-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;gap:22px;padding-bottom:44px}
-  .guide-label{font-size:clamp(15px, 4.4vw, 19px);font-weight:600;line-height:1.5;letter-spacing:-.02em;color:rgba(34,34,34,.7);text-align:center}
+  .guide-label{font-size:clamp(15px, 4.4vw, 19px);font-weight:500;line-height:1.5;letter-spacing:-.02em;color:rgba(34,34,34,.7);text-align:center}
 
   /* ── Rolling questions ── */
   .example-area{position:relative;width:88%;min-height:140px;display:flex;align-items:flex-start;justify-content:center}
@@ -104,6 +103,9 @@
   /* ── Compose overlay ── */
   .compose-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:env(safe-area-inset-top,0px) 24px env(safe-area-inset-bottom,0px);opacity:0;pointer-events:none;transition:opacity .7s ease,height .3s ease}
   body.compose .compose-overlay{opacity:1;pointer-events:auto}
+  body.toast .compose-overlay{pointer-events:none}
+  body.toast .back-btn{opacity:0;pointer-events:none}
+  body.toast .hidden-input{pointer-events:none;z-index:-1}
 
   .typing-display{font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.5;letter-spacing:-.04em;text-align:center;width:85%;min-height:60px;position:relative;word-break:keep-all;overflow-wrap:break-word;color:rgba(34,34,34,.85);margin-top:30px}
   .typing-display .char{display:inline;color:rgba(34,34,34,.85)}
@@ -130,7 +132,7 @@
   .sent-toast.exit{opacity:0;translate:0 -12px}
   .sent-toast .toast-main{position:relative;font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.2;letter-spacing:-.04em;white-space:pre-line;word-break:keep-all;overflow-wrap:break-word;color:rgba(34,34,34,.85)}
   .sent-toast .toast-glow{position:absolute;top:0;left:0;width:100%;white-space:pre-line;text-align:center;color:transparent;-webkit-text-fill-color:transparent;background-image:conic-gradient(from 0deg at 50% 50%,#FF5C00,#FF8EFF,#00ADFF,#8364FF,#FF5C00);background-size:150% 150%;-webkit-background-clip:text;background-clip:text;animation:gflow 8s linear infinite;-webkit-mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%);mask-image:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 0%,transparent 40%,#000 70%);opacity:.45;pointer-events:none}
-  .sent-toast .toast-sub{font-size:clamp(15px, 4.4vw, 19px);font-weight:600;line-height:1.5;letter-spacing:-.02em;color:rgba(34,34,34,.7)}
+  .sent-toast .toast-sub{font-size:clamp(15px, 4.4vw, 19px);font-weight:500;line-height:1.5;letter-spacing:-.02em;color:rgba(34,34,34,.7)}
   .sent-toast .toast-line{opacity:0;translate:0 12px;transition:opacity .6s ease,translate .6s ease}
   .sent-toast .toast-line.show{opacity:1;translate:0 0}
 </style>
@@ -204,6 +206,7 @@ const overlay = document.querySelector('.compose-overlay');
 let isComposing = false;
 let prevLen = 0;
 let sendLock = false;
+let toastActive = false; // 토스트 시퀀스 진행 중 플래그
 
 /* ── Helper: 입력 클리어 ── */
 function clearInput() {
@@ -244,7 +247,7 @@ if (window.visualViewport) {
 
 /* ── Compose mode ── */
 function enterCompose() {
-  if (isComposing) return;
+  if (isComposing || toastActive) return;
   isComposing = true;
   hiddenInput.value = '';
   prevLen = 0;
@@ -256,6 +259,7 @@ function enterCompose() {
 }
 
 function exitCompose() {
+  if (toastActive) return; // 토스트 진행 중엔 뒤로가기 차단
   isComposing = false;
   hiddenInput.blur();
   document.body.classList.remove('compose');
@@ -274,8 +278,19 @@ function exitCompose() {
 hiddenInput.addEventListener('focus', () => { if (!isComposing) enterCompose(); });
 cancelBtn.addEventListener('click', exitCompose);
 
-// compose overlay 탭 → 키보드 재오픈
-overlay.addEventListener('click', () => { if (isComposing) hiddenInput.focus(); });
+// CTA 직접 클릭 백업 (label[for]이 iOS에서 focus 못 줄 때 대비)
+document.getElementById('ctaBtn').addEventListener('click', (e) => {
+  if (toastActive) return;
+  e.preventDefault();
+  hiddenInput.focus();
+  if (!isComposing) enterCompose();
+});
+
+// compose overlay 탭 → 키보드 재오픈 (토스트 중엔 무시)
+overlay.addEventListener('click', (e) => {
+  if (toastActive) { e.stopPropagation(); return; }
+  if (isComposing) hiddenInput.focus();
+});
 
 /* ── Typing display (입력 미러링) ── */
 hiddenInput.addEventListener('input', () => {
@@ -296,33 +311,50 @@ hiddenInput.addEventListener('input', () => {
    전송 이벤트
    ══════════════════════════════════════ */
 function trySend() {
-  if (sendLock) return;
+  if (sendLock || toastActive) return;
   sendLock = true;
-  setTimeout(() => { sendLock = false; }, 500);
-  // setTimeout(0): compositionend가 텍스트 커밋 완료한 뒤 실행 → "발" 잔류 방지
-  setTimeout(() => send(), 0);
+  setTimeout(() => { sendLock = false; }, 400);
+  // 50ms 딜레이: compositionend가 텍스트 커밋 완료한 뒤 실행
+  setTimeout(() => send(), 50);
 }
 
-// 1) keydown Enter (데스크탑 + IME 비활성 시)
+// IME 조합 상태 추적
+let imeComposing = false;
+hiddenInput.addEventListener('compositionstart', () => { imeComposing = true; });
+hiddenInput.addEventListener('compositionend', () => {
+  imeComposing = false;
+  // IME 조합 끝난 직후 — 만약 엔터로 끝났으면 전송
+  if (pendingEnter) { pendingEnter = false; trySend(); }
+});
+
+let pendingEnter = false;
+
+// 1) keydown Enter
 hiddenInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); trySend(); }
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    if (imeComposing) {
+      // IME 조합 중이면 compositionend 후에 전송
+      pendingEnter = true;
+    } else {
+      trySend();
+    }
+  }
 });
 
 // 2) beforeinput 백업
 hiddenInput.addEventListener('beforeinput', (e) => {
   if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') {
-    e.preventDefault(); trySend();
+    e.preventDefault();
+    if (!imeComposing) trySend();
   }
 });
 
 // 3) ★ 메인: blur 기반 전송 (iOS Send 버튼의 유일하게 확실한 신호)
-//    - 뒤로가기: exitCompose()가 isComposing=false 먼저 → 여기서 탈락
-//    - overlay 탭: 300ms 내 refocus → activeElement 체크에서 탈락
-//    - Send 버튼: 300ms 뒤에도 blur + isComposing → 전송!
 hiddenInput.addEventListener('blur', () => {
-  if (!isComposing || !hiddenInput.value.trim() || sendLock) return;
+  if (!isComposing || !hiddenInput.value.trim() || sendLock || toastActive) return;
   setTimeout(() => {
-    if (isComposing && document.activeElement !== hiddenInput && hiddenInput.value.trim() && !sendLock) {
+    if (isComposing && document.activeElement !== hiddenInput && hiddenInput.value.trim() && !sendLock && !toastActive) {
       trySend();
     }
   }, 300);
@@ -333,6 +365,8 @@ hiddenInput.addEventListener('blur', () => {
    ══════════════════════════════════════ */
 function showSuccessToast() {
   isComposing = false;
+  toastActive = true;
+  document.body.classList.add('toast');
   clearInput();
   resetOverlay();
   overlay.style.justifyContent = 'center';
@@ -373,7 +407,8 @@ function showSuccessToast() {
       cont.style.opacity = '0';
       cont.style.filter = 'blur(20px)';
 
-      document.body.classList.remove('compose');
+      toastActive = false;
+      document.body.classList.remove('compose', 'toast');
       if (window.resetSlides) window.resetSlides();
 
       // 순차 페이드인 (인트로처럼)
@@ -409,7 +444,11 @@ async function send() {
 
   // Firebase 전송
   try { await qRef.push({ text, ts: Date.now() }); }
-  catch(e) { console.error('Firebase send error:', e); }
+  catch(e) {
+    console.error('Firebase send error:', e);
+    sendLock = false;
+    return; // 실패 시 토스트 안 띄움
+  }
 
   showSuccessToast();
 }
@@ -441,7 +480,7 @@ async function send() {
 /* ── Rotating text ── */
 {
   const slides = document.querySelectorAll('.txt-slide');
-  let cur = 0, gt = null, rotInterval = null;
+  let cur = 0, gt = null, rotInterval = null, resetTimer = null;
 
   const whiteOrb = document.getElementById('whiteOrb');
   whiteOrb.addEventListener('animationend', () => {
@@ -471,12 +510,13 @@ async function send() {
 
   // 전역: 토스트 복귀 시 리셋
   window.resetSlides = function() {
-    if (rotInterval) clearInterval(rotInterval);
-    if (gt) clearTimeout(gt);
+    if (rotInterval) { clearInterval(rotInterval); rotInterval = null; }
+    if (gt) { clearTimeout(gt); gt = null; }
+    if (resetTimer) { clearTimeout(resetTimer); resetTimer = null; }
     slides.forEach(s => s.classList.remove('active','glow','exit'));
     cur = 0;
     slides[0].classList.add('active');
-    setTimeout(() => startRotation(), 1500);
+    resetTimer = setTimeout(() => { resetTimer = null; startRotation(); }, 1500);
   };
 
   // 인트로 후 시작
@@ -557,23 +597,24 @@ varying vec3 vWP;\n`+sh.fragmentShader;
   float br=sin(t*.3)*.5+.5,bSp=mix(.35,.7,br*br),sp=bSp*uStartup;
   float cx=(sin(t*.19)*.25+cos(t*.11)*.15)*sR*.25*uStartup;
   float cy=(cos(t*.15)*.2+sin(t*.09)*.1)*sR*.25*uStartup;
-  float oD=sR*.48*uStartup,spn=uSpin,wb=sp*sR*.36;
+  float oD=sR*.42*uStartup,spn=uSpin,wb=sp*sR*.28;
+  float lim=sR*.50;
   float a1=spn,a2=spn+1.5708,a3=spn+3.14159,a4=spn+4.71239;
-  float ox1=cx+oD*cos(a1)+sin(t*.53)*wb,oy1=cy+oD*sin(a1)+cos(t*.41)*wb*.7;
-  ox1=clamp(ox1,-sR*.65,sR*.65); oy1=clamp(oy1,-sR*.65,sR*.65);
+  float ox1=cx+oD*cos(a1)+sin(t*.53)*wb*.6,oy1=cy+oD*sin(a1)+cos(t*.41)*wb*.55;
+  ox1=clamp(ox1,-lim,lim); oy1=clamp(oy1,-lim,lim);
   vec3 o1=vec3(ox1,oy1,sqrt(max(sR*sR-ox1*ox1-oy1*oy1,.01)));
-  float ox2=cx+oD*cos(a2)+sin(t*.47+2.1)*wb*.9,oy2=cy+oD*sin(a2)+cos(t*.57+1.3)*wb*.8;
-  ox2=clamp(ox2,-sR*.65,sR*.65); oy2=clamp(oy2,-sR*.65,sR*.65);
+  float ox2=cx+oD*cos(a2)+sin(t*.47+2.1)*wb*.75,oy2=cy+oD*sin(a2)+cos(t*.57+1.3)*wb*.7;
+  ox2=clamp(ox2,-lim,lim); oy2=clamp(oy2,-lim,lim);
   vec3 o2=vec3(ox2,oy2,sqrt(max(sR*sR-ox2*ox2-oy2*oy2,.01)));
-  float ox3=cx+oD*cos(a3)+cos(t*.61+4.2)*wb,oy3=cy+oD*sin(a3)+sin(t*.37+3.7)*wb*.7;
-  ox3=clamp(ox3,-sR*.65,sR*.65); oy3=clamp(oy3,-sR*.65,sR*.65);
+  float ox3=cx+oD*cos(a3)+cos(t*.61+4.2)*wb*.8,oy3=cy+oD*sin(a3)+sin(t*.37+3.7)*wb*.65;
+  ox3=clamp(ox3,-lim,lim); oy3=clamp(oy3,-lim,lim);
   vec3 o3=vec3(ox3,oy3,sqrt(max(sR*sR-ox3*ox3-oy3*oy3,.01)));
-  float ox4=cx+oD*cos(a4)+cos(t*.43+5.8)*wb*.85,oy4=cy+oD*sin(a4)+sin(t*.51+6.1)*wb*.75;
-  ox4=clamp(ox4,-sR*.65,sR*.65); oy4=clamp(oy4,-sR*.65,sR*.65);
+  float ox4=cx+oD*cos(a4)+cos(t*.43+5.8)*wb*.7,oy4=cy+oD*sin(a4)+sin(t*.51+6.1)*wb*.65;
+  ox4=clamp(ox4,-lim,lim); oy4=clamp(oy4,-lim,lim);
   vec3 o4=vec3(ox4,oy4,sqrt(max(sR*sR-ox4*ox4-oy4*oy4,.01)));
   float bg=uOrbGrow;
-  float b1=hH*.0455*(1.+.15*sin(t*.29))*bg,b2=hH*.0293*(1.+.14*sin(t*.37+1.5))*bg;
-  float b3=hH*.0429*(1.+.12*sin(t*.43+3.2))*bg,b4=hH*.0416*(1.+.16*sin(t*.33+4.8))*bg;
+  float b1=hH*.0360*(1.+.10*sin(t*.29))*bg,b2=hH*.0320*(1.+.10*sin(t*.37+1.5))*bg;
+  float b3=hH*.0400*(1.+.10*sin(t*.43+3.2))*bg,b4=hH*.0380*(1.+.10*sin(t*.33+4.8))*bg;
   float f1=exp(-dot(o1-vWP,o1-vWP)/(20.*b1*b1)),f2=exp(-dot(o2-vWP,o2-vWP)/(20.*b2*b2));
   float f3=exp(-dot(o3-vWP,o3-vWP)/(20.*b3*b3)),f4=exp(-dot(o4-vWP,o4-vWP)/(20.*b4*b4));
   float fc=dot(nV,vec3(0,0,1)),mk=.4+smoothstep(-.2,.2,fc)*.6;
@@ -606,11 +647,13 @@ const INTRO_DUR = 3.0;
 const TOAST_DUR = 2.5; // 토스트 임팩트 모션 길이
 let toastImpactStart = -1; // -1 = 비활성
 let baseSpinOffset = 0; // 인트로 끝난 후 spin 기준값
+let stableSpin = 6 * Math.PI; // 안정 상태 spin 기준 (인트로/토스트 끝날 때 갱신)
+let stableSpinT = 3.0; // 안정 상태 시작 시각
 
 // 전역 트리거 함수 (showSuccessToast에서 호출)
 window.triggerOrbImpact = function() {
   const dt = clock.getElapsedTime();
-  baseSpinOffset = orbU.uSpin.value; // 현재 spin 이어가기
+  baseSpinOffset = stableSpin + (dt - stableSpinT) * 0.15; // 현재 안정 spin에서 이어가기
   toastImpactStart = dt;
   // whiteOrb 페이드아웃
   const orb = document.getElementById('whiteOrb');
@@ -644,7 +687,8 @@ window.endOrbImpact = function() {
   toastImpactStart = -1;
 };
 
-function calcMotion(t, spinTotal) {
+// 인트로 전용 모션 (uOrbSpeed + 스케일 변경 OK — uTime이 0부터)
+function calcIntroMotion(t) {
   const midT = 0.35, minSpread = 0.15;
   let spread;
   if (t < midT) {
@@ -655,14 +699,39 @@ function calcMotion(t, spinTotal) {
     spread = minSpread + ss*(1-minSpread);
   }
   const spinEase = 1 - Math.pow(1-t,3);
-  const spin = spinTotal*Math.PI*spinEase;
+  const spin = 6*Math.PI*spinEase;
   const speedCurve = 1 - Math.pow(1-t,2);
-  const speed = 8 - 6*speedCurve;
+  const speed = 3.5 - 1.5*speedCurve;
   let grow = 1;
-  if (t > midT) { const gp=(t-midT)/(1-midT); grow=1+0.5*gp*gp*(3-2*gp); }
-  const sr = t, se = 1-Math.pow(1-sr,3);
+  if (t > midT) { const gp=(t-midT)/(1-midT); grow=1+0.875*gp*gp*(3-2*gp); }
+  const se = 1-Math.pow(1-t,3);
   const s = 1.6 - 0.6*se;
   return {spread, spin, speed, grow, s};
+}
+
+// 토스트 전용 모션 (uOrbSpeed 고정! uTime이 이미 크므로 speed 변경하면 궤도 점프)
+function calcToastMotion(t) {
+  const midT = 0.4, minSpread = 0.2;
+  let spread;
+  if (t < midT) {
+    const p = t / midT, ss = p*p*(3-2*p);
+    spread = 1 - ss*(1-minSpread);
+  } else {
+    const p = (t-midT)/(1-midT), ss = p*p*(3-2*p);
+    spread = minSpread + ss*(1-minSpread);
+  }
+  const spinEase = 1 - Math.pow(1-t,3);
+  const spin = 3*Math.PI*spinEase; // 1.5바퀴
+  // speed는 항상 2.0 (안정 상태 유지 — 궤도 점프 방지)
+  let grow = 1.875;
+  if (t < midT) {
+    const gp = t / midT, gs = gp*gp*(3-2*gp);
+    grow = 1.875 - 0.375*gs; // 살짝 줄어들었다가
+  } else {
+    const gp = (t-midT)/(1-midT), gs = gp*gp*(3-2*gp);
+    grow = 1.5 + 0.375*gs; // 다시 복귀
+  }
+  return {spread, spin, speed: 2.0, grow, s: 1.0};
 }
 
 (function anim(now){
@@ -675,21 +744,25 @@ function calcMotion(t, spinTotal) {
   let spread, spin, speed, grow, s;
 
   if (toastImpactStart > 0) {
-    // ★ 토스트 임팩트 모션 재생
+    // ★ 토스트 임팩트 모션 (speed 고정, 궤도 안정)
     const tt = Math.min((dt - toastImpactStart) / TOAST_DUR, 1.0);
-    const m = calcMotion(tt, 3);
+    const m = calcToastMotion(tt);
     spread = m.spread; speed = m.speed; grow = m.grow; s = m.s;
-    spin = baseSpinOffset + m.spin; // 현재 회전에서 이어서 추가 회전
-    if (tt >= 1.0) { toastImpactStart = -1; } // 모션 완료
+    spin = baseSpinOffset + m.spin;
+    if (tt >= 1.0) {
+      stableSpin = spin;
+      stableSpinT = dt;
+      toastImpactStart = -1;
+    }
   } else if (dt < INTRO_DUR) {
-    // 인트로 모션
+    // 인트로 모션 (speed + 스케일 전부 변경 OK)
     const t = dt / INTRO_DUR;
-    const m = calcMotion(t, 6);
+    const m = calcIntroMotion(t);
     spread = m.spread; spin = m.spin; speed = m.speed; grow = m.grow; s = m.s;
   } else {
-    // 안정 상태
-    spread = 1.0; speed = 2.0; grow = 1.5; s = 1.0;
-    spin = orbU.uSpin.value + 0.001; // 천천히 회전 유지
+    // 안정 상태: 마지막 모션 끝 spin에서 이어서 느리게 회전
+    spread = 1.0; speed = 2.0; grow = 1.875; s = 1.0;
+    spin = stableSpin + (dt - stableSpinT) * 0.15;
   }
 
   orbU.uStartup.value = spread;
