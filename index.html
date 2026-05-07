@@ -112,7 +112,7 @@
   .typing-display{font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.5;letter-spacing:-.04em;text-align:center;width:85%;min-height:60px;position:relative;word-break:keep-all;overflow-wrap:break-word;color:rgba(34,34,34,.85);margin-top:30px}
   .typing-display .char{display:inline;color:rgba(34,34,34,.85)}
   @keyframes type-pulse{0%{color:rgba(131,100,255,.7)}100%{color:rgba(34,34,34,.85)}}
-  .typing-display .cursor{display:inline-block;width:1.5px;height:1em;background:rgba(131,100,255,.5);margin-left:2px;animation:cursor-blink 1.2s ease-in-out infinite;vertical-align:text-bottom}
+  .typing-display .cursor{display:inline-block;width:3px;height:1em;background:rgba(131,100,255,.5);margin-left:2px;animation:cursor-blink 1.2s ease-in-out infinite;vertical-align:text-bottom;border-radius:1.5px}
   @keyframes cursor-blink{0%,100%{opacity:.3}50%{opacity:.8}}
 
   /* Hidden input */
@@ -126,7 +126,25 @@
   .back-btn svg{width:29px;height:29px;stroke:rgba(0,0,0,.4);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
   .back-btn:active{transform:scale(.9)}
 
-
+  /* ── Send CTA button (compose mode) — Liquid Glass ── */
+  .send-btn{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 16px);left:0;right:0;z-index:90;margin:0 40px;height:auto;padding:20px 0;border-radius:9999px;border:none;
+    background:rgba(255,255,255,.08);
+    backdrop-filter:none;-webkit-backdrop-filter:none;
+    color:rgba(0,0,0,.7);font-family:inherit;font-size:16px;font-weight:700;letter-spacing:-.02em;
+    cursor:pointer;opacity:0;pointer-events:none;transition:opacity .3s ease,transform .15s ease;
+    box-shadow:0 2px 12px rgba(0,0,0,.06),0 8px 32px rgba(0,0,0,.04);overflow:hidden;text-align:center}
+  .send-btn::before{content:'';position:absolute;inset:0;border-radius:9999px;pointer-events:none;
+    background:radial-gradient(ellipse 70% 60% at 50% 50%,transparent 0%,transparent 45%,rgba(255,255,255,.12) 65%,rgba(255,255,255,.25) 80%,rgba(255,255,255,.35) 100%),
+    linear-gradient(180deg,rgba(255,255,255,.25) 0%,rgba(255,255,255,.08) 30%,transparent 55%);transition:opacity .3s ease}
+  .send-btn::after{content:'';position:absolute;inset:0;border-radius:9999px;pointer-events:none;
+    border:1.5px solid rgba(255,255,255,.27);
+    box-shadow:inset 0 1px 3px rgba(255,255,255,.3),inset 0 -1px 2px rgba(0,0,0,.03),inset 2px 0 4px rgba(255,255,255,.07),inset -2px 0 4px rgba(255,255,255,.07),0 0 8px rgba(255,255,255,.15);transition:opacity .3s ease}
+  body.compose .send-btn{opacity:1;pointer-events:auto}
+  body.compose .send-btn.has-text{background:rgba(0,0,0,.85);color:#fff;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+  body.compose .send-btn.has-text::before{opacity:0}
+  body.compose .send-btn.has-text::after{opacity:0}
+  body.toast .send-btn{opacity:0;pointer-events:none}
+  .send-btn:active{transform:scale(.97)}
 
   /* ── Toast ── */
   .sent-toast{width:95%;min-height:80px;opacity:0;pointer-events:none;z-index:100;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .8s ease,translate .8s ease;translate:0 12px}
@@ -178,6 +196,7 @@ AX 문화가 궁금해</div></div>
 </div>
 
 <button class="back-btn" id="cancelBtn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+<button class="send-btn" id="sendBtn">질문하기</button>
 
 <div class="compose-overlay">
   <div class="typing-display" id="typingDisplay"><span class="cursor"></span></div>
@@ -204,6 +223,7 @@ const qRef = firebase.database().ref(`rooms/${ROOM_ID}/questions`);
 /* ── DOM ── */
 const hiddenInput = document.getElementById('hiddenInput');
 const typingDisplay = document.getElementById('typingDisplay');
+const sendBtn = document.getElementById('sendBtn');
 const cancelBtn = document.getElementById('cancelBtn');
 const sentToast = document.getElementById('sentToast');
 const overlay = document.querySelector('.compose-overlay');
@@ -241,9 +261,12 @@ if (window.visualViewport) {
     if (kbH > 100) {
       overlay.style.justifyContent = 'flex-start';
       overlay.style.paddingTop = Math.round(vvH * 0.3) + 'px';
+      // 전송 버튼을 키보드 바로 위에 배치
+      sendBtn.style.bottom = (kbH + 12) + 'px';
     } else {
       overlay.style.justifyContent = 'center';
       overlay.style.paddingTop = '';
+      sendBtn.style.bottom = '';
     }
   };
   window.visualViewport.addEventListener('resize', syncOverlay);
@@ -297,19 +320,38 @@ overlay.addEventListener('click', (e) => {
   if (isComposing) hiddenInput.focus();
 });
 
-/* ── Typing display (입력 미러링) ── */
-hiddenInput.addEventListener('input', () => {
+/* ── Typing display (입력 미러링 + 커서 위치 반영) ── */
+function syncDisplay() {
   const text = hiddenInput.value;
   const newLen = text.length;
+  const cursorPos = hiddenInput.selectionStart ?? text.length;
   let html = '';
   for (let i = 0; i < text.length; i++) {
+    if (i === cursorPos) html += '<span class="cursor"></span>';
     const ch = text[i] === ' ' ? '&nbsp;' : text[i].replace(/</g, '&lt;');
     const pulse = (i >= prevLen && newLen > prevLen) ? ' style="animation:type-pulse .6s ease forwards"' : '';
     html += `<span class="char"${pulse}>${ch}</span>`;
   }
-  html += '<span class="cursor"></span>';
+  if (cursorPos >= text.length) html += '<span class="cursor"></span>';
   typingDisplay.innerHTML = html;
   prevLen = newLen;
+  // 전송 버튼 활성화 상태
+  if (text.trim()) sendBtn.classList.add('has-text');
+  else sendBtn.classList.remove('has-text');
+}
+hiddenInput.addEventListener('input', syncDisplay);
+// 커서 이동(화살표, 탭 등)도 반영
+hiddenInput.addEventListener('keyup', syncDisplay);
+hiddenInput.addEventListener('click', syncDisplay);
+hiddenInput.addEventListener('select', syncDisplay);
+
+/* ── 전송 버튼 (가장 확실한 전송 방법) ── */
+sendBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  imeComposing = false;
+  pendingEnter = false;
+  trySend();
 });
 
 /* ══════════════════════════════════════
