@@ -115,8 +115,8 @@
   .typing-display .cursor{display:inline-block;width:1.5px;height:1em;background:rgba(131,100,255,.5);margin-left:2px;animation:cursor-blink 1.2s ease-in-out infinite;vertical-align:text-bottom}
   @keyframes cursor-blink{0%,100%{opacity:.3}50%{opacity:.8}}
 
-  /* Hidden textarea — always offscreen visually, but never display:none (kills focus on iOS) */
-  .hidden-input{position:fixed;top:0;left:0;width:100%;height:100%;opacity:0.01;border:none;outline:none;background:transparent;font-size:16px;z-index:61;color:transparent;caret-color:transparent;-webkit-appearance:none;-webkit-user-select:text;user-select:text;padding:40% 20% 0;text-align:center}
+  /* Hidden input — 뒤로가기 버튼 영역 피해서 배치 */
+  .hidden-input{position:fixed;top:70px;left:0;width:100%;bottom:0;opacity:0.01;border:none;outline:none;background:transparent;font-size:16px;z-index:61;color:transparent;caret-color:transparent;-webkit-appearance:none;-webkit-user-select:text;user-select:text;padding:30% 20% 0;text-align:center}
   body:not(.compose) .hidden-input{pointer-events:none;z-index:-1}
 
   /* ── Back button ── */
@@ -314,10 +314,12 @@ hiddenInput.addEventListener('input', () => {
    ══════════════════════════════════════ */
 function trySend() {
   if (sendLock || toastActive) return;
+  const text = hiddenInput.value.trim();
+  if (!text) return; // 빈 텍스트면 무시
   sendLock = true;
-  setTimeout(() => { sendLock = false; }, 400);
-  // 50ms 딜레이: compositionend가 텍스트 커밋 완료한 뒤 실행
-  setTimeout(() => send(), 50);
+  setTimeout(() => { sendLock = false; }, 300);
+  // 30ms 딜레이: compositionend가 텍스트 커밋 완료한 뒤 실행
+  setTimeout(() => send(), 30);
 }
 
 // IME 조합 상태 추적
@@ -325,48 +327,37 @@ let imeComposing = false;
 hiddenInput.addEventListener('compositionstart', () => { imeComposing = true; });
 hiddenInput.addEventListener('compositionend', () => {
   imeComposing = false;
-  // IME 조합 끝난 직후 — 만약 엔터로 끝났으면 전송
   if (pendingEnter) { pendingEnter = false; trySend(); }
 });
 
 let pendingEnter = false;
 
-// 1) keydown Enter — 모바일 IME 호환
+// 1) keydown Enter
 hiddenInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     if (imeComposing) {
-      // IME 조합 중이면 compositionend 후에 전송
       pendingEnter = true;
-      // ★ 안전장치: 일부 모바일 IME는 compositionend를 안 보냄
-      // 300ms 후에도 imeComposing이면 강제 해제 후 전송
       setTimeout(() => {
-        if (pendingEnter) {
-          pendingEnter = false;
-          imeComposing = false;
-          trySend();
-        }
-      }, 300);
+        if (pendingEnter) { pendingEnter = false; imeComposing = false; trySend(); }
+      }, 200);
     } else {
       trySend();
     }
   }
 });
 
-// 2) beforeinput 백업
+// 2) beforeinput — 가장 신뢰할 수 있는 모바일 엔터 감지
 hiddenInput.addEventListener('beforeinput', (e) => {
   if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') {
     e.preventDefault();
-    if (imeComposing) {
-      // IME 중이어도 강제 전송 (모바일 키보드 엔터)
-      imeComposing = false;
-      pendingEnter = false;
-    }
+    imeComposing = false;
+    pendingEnter = false;
     trySend();
   }
 });
 
-// 3) textInput 백업 (일부 Android 키보드가 Enter 대신 이걸 보냄)
+// 3) textInput 백업 (일부 Android)
 hiddenInput.addEventListener('textInput', (e) => {
   if (e.data === '\n' || e.data === '\r') {
     e.preventDefault();
@@ -376,10 +367,29 @@ hiddenInput.addEventListener('textInput', (e) => {
   }
 }, true);
 
+// 4) ★ input 이벤트에서 줄바꿈 감지 (최후의 백업)
+// 일부 모바일 IME가 Enter를 일반 input으로 처리하는 경우
+hiddenInput.addEventListener('input', (e) => {
+  if (hiddenInput.value.includes('\n') || hiddenInput.value.includes('\r')) {
+    hiddenInput.value = hiddenInput.value.replace(/[\n\r]/g, '');
+    imeComposing = false;
+    pendingEnter = false;
+    trySend();
+  }
+});
+
 // 4) ★ 메인: blur 기반 전송 (iOS Send 버튼의 유일하게 확실한 신호)
+// 뒤로가기 버튼 탭과 구분하기 위해 플래그 사용
+let backBtnTapped = false;
+cancelBtn.addEventListener('pointerdown', () => { backBtnTapped = true; });
+cancelBtn.addEventListener('touchstart', () => { backBtnTapped = true; }, { passive: true });
+
 hiddenInput.addEventListener('blur', () => {
+  // 뒤로가기 탭이면 전송하지 않음
+  if (backBtnTapped) { backBtnTapped = false; return; }
   if (!isComposing || !hiddenInput.value.trim() || sendLock || toastActive) return;
   setTimeout(() => {
+    if (backBtnTapped) { backBtnTapped = false; return; }
     if (isComposing && document.activeElement !== hiddenInput && hiddenInput.value.trim() && !sendLock && !toastActive) {
       trySend();
     }
@@ -473,7 +483,7 @@ async function send() {
   catch(e) {
     console.error('Firebase send error:', e);
     sendLock = false;
-    return; // 실패 시 토스트 안 띄움
+    return;
   }
 
   showSuccessToast();
