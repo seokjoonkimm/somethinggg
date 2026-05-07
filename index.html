@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
 <title>ask-ennoia</title>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="favicon.png">
@@ -327,13 +330,29 @@ async function trySend() {
   if (!text) return;
   sendLock = true;
   try {
-    await qRef.push({ text, ts: Date.now() });
+    // 5초 타임아웃 — Firebase 연결 끊겼을 때 무한 대기 방지
+    await Promise.race([
+      qRef.push({ text, ts: Date.now() }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('전송 타임아웃')), 5000))
+    ]);
     showSuccessToast();
   } catch(e) {
     console.error('Firebase send error:', e);
     sendLock = false;
+    // 연결 끊김이면 재연결 시도
+    firebase.database().goOffline();
+    firebase.database().goOnline();
   }
 }
+
+// Firebase 연결 상태 감시 — 끊기면 자동 재연결
+firebase.database().ref('.info/connected').on('value', (snap) => {
+  console.log('[Firebase] 연결:', snap.val() ? '정상' : '끊김');
+  if (!snap.val()) {
+    firebase.database().goOffline();
+    firebase.database().goOnline();
+  }
+});
 
 // 전송 버튼 — touchend + click
 let btnTouching = false;
