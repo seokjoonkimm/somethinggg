@@ -110,13 +110,18 @@
   /* ── 텍스트 입력 (네이티브) ── */
   .compose-input{
     width:100%;font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.5;letter-spacing:-.04em;
-    text-align:center;color:rgba(34,34,34,.85);caret-color:rgba(131,100,255,.9);
+    text-align:center;color:rgba(34,34,34,.85);caret-color:rgba(131,100,255,1);
+    caret-shape:bar;
     background:transparent;border:none;outline:none;resize:none;
     -webkit-appearance:none;word-break:keep-all;overflow-wrap:break-word;
     padding:0;margin:0;min-height:1.5em;max-height:40vh;
     font-family:'Pretendard',system-ui,-apple-system,sans-serif;
   }
-  .compose-input::placeholder{color:rgba(34,34,34,.25);font-weight:500}
+  .compose-input::placeholder{color:transparent}
+  /* 두꺼운 커서 — WebKit 기반 트릭 */
+  @supports (-webkit-text-stroke: 0) {
+    .compose-input { font-size:clamp(24px, 7vw, 34px); }
+  }
 
   /* ── Back button ── */
   .back-btn{position:fixed;top:calc(env(safe-area-inset-top) + 12px);left:calc(env(safe-area-inset-left) + 16px);z-index:80;width:44px;height:44px;border:none;background:none;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .5s ease;display:flex;align-items:center;justify-content:center}
@@ -192,7 +197,7 @@ AX 문화가 궁금해</div></div>
     </div>
   </div>
   <div class="cta-area">
-    <label class="cta-btn" id="ctaBtn" for="composeInput"><div class="cta-mask"></div><div class="cta-shine"></div><span style="position:relative;z-index:3">엔노이아에게 질문하기</span></label>
+    <button class="cta-btn" id="ctaBtn" type="button"><div class="cta-mask"></div><div class="cta-shine"></div><span style="position:relative;z-index:3">엔노이아에게 질문하기</span></button>
   </div>
 </div>
 
@@ -201,7 +206,7 @@ AX 문화가 궁금해</div></div>
 
 <div class="compose-overlay" id="composeOverlay">
   <form id="composeForm" action="javascript:void(0)" autocomplete="off" style="width:85%;margin:0;padding:0;display:flex;justify-content:center">
-    <textarea class="compose-input" id="composeInput" rows="1" maxlength="200" placeholder="무엇이든 물어보세요" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="send"></textarea>
+    <textarea class="compose-input" id="composeInput" rows="1" maxlength="200" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="send"></textarea>
   </form>
   <div class="sent-toast" id="sentToast"></div>
 </div>
@@ -219,7 +224,7 @@ firebase.initializeApp({
   databaseURL:"https://somethinggg-c7f23-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId:"somethinggg-c7f23"
 });
-const qRef = firebase.database().ref('questions');
+const qRef = firebase.database().ref('rooms/default/questions');
 
 const input = document.getElementById('composeInput');
 const sendBtn = document.getElementById('sendBtn');
@@ -266,12 +271,13 @@ function enterCompose() {
   if (isComposing || toastActive) return;
   isComposing = true;
   input.value = '';
+  input.style.cssText = '';
   input.style.height = 'auto';
   sentToast.classList.remove('show', 'exit');
   sentToast.innerHTML = '';
   sendBtn.classList.remove('has-text');
   document.body.classList.add('compose');
-  setTimeout(() => input.focus(), 100);
+  input.focus(); // iOS: setTimeout 쓰면 키보드 안 뜸, 반드시 동기 호출
 }
 
 function exitCompose() {
@@ -291,12 +297,10 @@ function exitCompose() {
   }, 700);
 }
 
-input.addEventListener('focus', () => { if (!isComposing) enterCompose(); });
 cancelBtn.addEventListener('click', exitCompose);
 
-document.getElementById('ctaBtn').addEventListener('click', (e) => {
+document.getElementById('ctaBtn').addEventListener('click', () => {
   if (toastActive) return;
-  e.preventDefault();
   enterCompose();
 });
 
