@@ -237,6 +237,8 @@ const overlay = document.getElementById('composeOverlay');
 let isComposing = false;
 let toastActive = false;
 let sendLock = false;
+let lastSentText = '';
+let lastSentTime = 0;
 
 /* ══════════════════════════════════════
    키보드 위치 동기화
@@ -326,36 +328,39 @@ input.addEventListener('input', () => {
 /* ══════════════════════════════════════
    전송
    ══════════════════════════════════════ */
-async function trySend() {
+function trySend() {
   if (sendLock || toastActive) { console.log('[DEBUG trySend] ❌ 전송 차단! sendLock:', sendLock, 'toastActive:', toastActive); return; }
   sendLock = true; // ★ 즉시 락 — 연타 방지
   const text = input.value.trim();
   if (!text) { console.log('[DEBUG trySend] ❌ 빈 텍스트'); sendLock = false; return; }
-  console.log('[DEBUG trySend] ✅ 전송 시작:', text);
-  try {
-    // 5초 타임아웃 — Firebase 연결 끊겼을 때 무한 대기 방지
-    await Promise.race([
-      qRef.push({ text, ts: Date.now() }),
-      new Promise((_, rej) => setTimeout(() => rej(new Error('전송 타임아웃')), 5000))
-    ]);
-    showSuccessToast();
-  } catch(e) {
-    console.error('[DEBUG trySend] ❌ 전송 실패:', e.message);
+
+  // ★ 중복 전송 방지 — 같은 텍스트 30초 내 재전송 차단
+  if (text === lastSentText && Date.now() - lastSentTime < 30000) {
+    console.log('[DEBUG trySend] ❌ 중복 전송 차단 (같은 텍스트 30초 내)');
     sendLock = false;
-    console.log('[DEBUG trySend] 🔓 sendLock = false (에러 후 해제)');
-    // 연결 끊김이면 재연결 시도
-    firebase.database().goOffline();
-    firebase.database().goOnline();
+    showSuccessToast();
+    return;
   }
+
+  console.log('[DEBUG trySend] ✅ 전송 시작:', text);
+
+  // ★ Firebase는 백그라운드로 — 응답 안 기다림
+  // Firebase SDK가 로컬 캐시 후 자동 전송 (끊겨도 재연결 시 전송)
+  const sendKey = Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+  qRef.child(sendKey).set({ text, ts: Date.now() })
+    .then(() => console.log('[Firebase] ✅ 전송 확인:', text))
+    .catch(e => console.error('[Firebase] ❌ 전송 실패:', e.message));
+
+  lastSentText = text;
+  lastSentTime = Date.now();
+
+  // ★ 즉시 토스트 — 사용자 대기 0초
+  showSuccessToast();
 }
 
-// Firebase 연결 상태 감시 — 끊기면 자동 재연결
+// Firebase 연결 상태 로깅
 firebase.database().ref('.info/connected').on('value', (snap) => {
-  console.log('[Firebase] 연결:', snap.val() ? '정상' : '끊김');
-  if (!snap.val()) {
-    firebase.database().goOffline();
-    firebase.database().goOnline();
-  }
+  console.log('[Firebase] 연결:', snap.val() ? '정상' : '끊김 (자동 재연결 대기)');
 });
 
 // 전송 버튼 — touchend + click
@@ -460,16 +465,38 @@ function showSuccessToast() {
 /* ══════════════════════════════════════
    상태 워치독 (5초 주기)
    ══════════════════════════════════════ */
+/* ══════════════════════════════════════
+   디버그 오버레이 (?debug=1)
+   ══════════════════════════════════════ */
+const DEBUG_ON = new URLSearchParams(location.search).has('debug');
+let debugEl = null;
+if (DEBUG_ON) {
+  debugEl = document.createElement('div');
+  debugEl.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9999;background:rgba(0,0,0,.82);color:#0f0;font:11px/1.4 monospace;padding:8px 10px;max-height:40vh;overflow-y:auto;pointer-events:none;white-space:pre-wrap';
+  document.body.appendChild(debugEl);
+}
+const debugLines = [];
+function debugLog(msg) {
+  const t = new Date().toLocaleTimeString('ko-KR',{hour12:false});
+  const line = t + ' ' + msg;
+  console.log(line);
+  if (!DEBUG_ON) return;
+  debugLines.push(line);
+  if (debugLines.length > 30) debugLines.shift();
+  debugEl.textContent = debugLines.join('\n');
+  debugEl.scrollTop = debugEl.scrollHeight;
+}
+
 setInterval(() => {
   const bodyClasses = document.body.className;
   const ctaPointer = getComputedStyle(document.querySelector('.cta-area')).pointerEvents;
   const overlayPointer = getComputedStyle(overlay).pointerEvents;
   const sendBtnPointer = getComputedStyle(sendBtn).pointerEvents;
   const sendBtnOpacity = getComputedStyle(sendBtn).opacity;
-  console.log('[WATCHDOG] isComposing:', isComposing, '| toastActive:', toastActive, '| sendLock:', sendLock,
-    '| body:', bodyClasses, '| cta-pointer:', ctaPointer, '| overlay-pointer:', overlayPointer,
-    '| sendBtn-pointer:', sendBtnPointer, '| sendBtn-opacity:', sendBtnOpacity);
-}, 5000);
+  const fbConnected = firebase.database().ref('.info/connected');
+  const msg = '[WD] lock:'+sendLock+' toast:'+toastActive+' compose:'+isComposing+' body:'+bodyClasses+' sendPtr:'+sendBtnPointer+' sendOp:'+sendBtnOpacity;
+  debugLog(msg);
+}, 3000);
 
 /* ══════════════════════════════════════
    인트로 시퀀스
