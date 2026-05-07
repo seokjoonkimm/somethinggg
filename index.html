@@ -130,7 +130,7 @@
   .back-btn:active{transform:scale(.9)}
 
   /* ── Send CTA button (compose mode) — Liquid Glass ── */
-  .send-btn{position:fixed;bottom:env(safe-area-inset-bottom,0px);left:0;right:0;z-index:90;
+  .send-btn{position:absolute;bottom:env(safe-area-inset-bottom,0px);left:0;right:0;z-index:5;
     padding:0 40px 24px;display:flex;justify-content:center;
     background:none;border:none;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .3s ease}
   .send-btn .send-inner{
@@ -202,13 +202,12 @@ AX 문화가 궁금해</div></div>
 </div>
 
 <button class="back-btn" id="cancelBtn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
-<button class="send-btn" id="sendBtn"><div class="send-inner"><span style="position:relative;z-index:3">질문하기</span></div></button>
-
 <div class="compose-overlay" id="composeOverlay">
   <form id="composeForm" action="javascript:void(0)" autocomplete="off" style="width:85%;margin:0;padding:0;display:flex;justify-content:center">
     <textarea class="compose-input" id="composeInput" rows="1" maxlength="200" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="send"></textarea>
   </form>
   <div class="sent-toast" id="sentToast"></div>
+  <button class="send-btn" id="sendBtn"><div class="send-inner"><span style="position:relative;z-index:3">질문하기</span></div></button>
 </div>
 
 
@@ -251,7 +250,7 @@ if (window.visualViewport) {
     if (kbH > 100) {
       overlay.style.justifyContent = 'flex-start';
       overlay.style.paddingTop = Math.round(vvH * 0.25) + 'px';
-      sendBtn.style.bottom = kbH + 'px';
+      sendBtn.style.bottom = '0';
       sendBtn.style.paddingBottom = '12px';
     } else {
       overlay.style.justifyContent = 'center';
@@ -348,15 +347,11 @@ document.getElementById('composeForm').addEventListener('submit', (e) => {
   trySend();
 });
 
-// 엔터키 — 항상 줄바꿈 방지, IME 조합 중이면 compositionend 후 전송
+// 엔터키 — 줄바꿈 방지 + 즉시 전송 (isComposing 무시 — iOS에서 compositionend가 안 올 수 있음)
 input.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
-    if (e.isComposing) {
-      input.addEventListener('compositionend', () => setTimeout(trySend, 50), { once: true });
-    } else {
-      trySend();
-    }
+    setTimeout(trySend, 80); // 약간의 딜레이로 IME 커밋 대기
   }
 });
 
