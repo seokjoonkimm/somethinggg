@@ -22,7 +22,7 @@
   .intro-line.show{opacity:1;filter:blur(0);translate:0 0;transition:opacity .6s ease,filter .6s ease,translate .6s ease}
   .intro-line.hide{opacity:0;filter:blur(8px);translate:0 -12px;transition:opacity .5s ease,filter .5s ease,translate .5s ease}
 
-  /* ── UI stagger (인트로 끝난 후) ── */
+  /* ── UI stagger ── */
   .guide-label{opacity:0;translate:0 12px}
   .example-area{opacity:0;translate:0 12px}
   .cta-area{opacity:0;translate:0 12px;pointer-events:none}
@@ -30,6 +30,7 @@
   .guide-label.show,.example-area.show,.cta-area.show{opacity:1;translate:0 0;transition:opacity 1s ease,translate 1s ease}
   .cta-btn .cta-mask{position:absolute;inset:0;border-radius:9999px;background:#fff;opacity:1;transition:opacity 4s ease;pointer-events:none;z-index:1}
   .cta-area.show .cta-btn .cta-mask{opacity:0}
+
   /* ── Layout ── */
   .container{display:flex;flex-direction:column;height:100%;height:100dvh;height:-webkit-fill-available;padding:env(safe-area-inset-top,0px) 24px env(safe-area-inset-bottom,0px);transition:opacity .7s ease,filter .7s ease;position:relative;z-index:10}
   body.compose .container{opacity:0;filter:blur(20px);pointer-events:none}
@@ -41,8 +42,7 @@
     display:block;text-align:center;
     position:relative;width:100%;padding:20px 0;border-radius:9999px;border:none;
     background:rgba(255,255,255,.08);
-    backdrop-filter:none;
-    -webkit-backdrop-filter:none;
+    backdrop-filter:none;-webkit-backdrop-filter:none;
     color:rgba(0,0,0,.7);font-family:inherit;font-size:16px;font-weight:700;
     letter-spacing:-.02em;cursor:pointer;transition:all .3s;
     box-shadow:0 2px 12px rgba(0,0,0,.06),0 8px 32px rgba(0,0,0,.04);overflow:hidden;
@@ -58,7 +58,6 @@
     box-shadow:inset 0 1px 3px rgba(255,255,255,.3),inset 0 -1px 2px rgba(0,0,0,.03),inset 2px 0 4px rgba(255,255,255,.07),inset -2px 0 4px rgba(255,255,255,.07),0 0 8px rgba(255,255,255,.15);
   }
   .cta-btn:active{transform:scale(.97)}
-  /* CTA shine sweep */
   .cta-btn .cta-shine{position:absolute;inset:0;border-radius:9999px;pointer-events:none;z-index:2;overflow:hidden}
   .cta-btn .cta-shine::after{content:'';position:absolute;top:-50%;left:-80%;width:60%;height:200%;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.6) 50%,transparent 70%);transform:skewX(-20deg);opacity:0}
   .cta-area.show .cta-btn .cta-shine::after{animation:cta-shine-sweep 1.2s ease 5.8s forwards}
@@ -110,8 +109,6 @@
   body.toast .hidden-input{pointer-events:none;z-index:-1}
 
   .typing-display{font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.5;letter-spacing:-.04em;text-align:center;width:85%;min-height:60px;position:relative;word-break:keep-all;overflow-wrap:break-word;color:rgba(34,34,34,.85);margin-top:30px}
-  .typing-display .char{display:inline;color:rgba(34,34,34,.85)}
-  @keyframes type-pulse{0%{color:rgba(131,100,255,.7)}100%{color:rgba(34,34,34,.85)}}
   .typing-display .cursor{display:inline-block;width:3px;height:1em;background:rgba(131,100,255,.9);margin-left:2px;animation:cursor-blink 1.2s ease-in-out infinite;vertical-align:text-bottom;border-radius:1.5px}
   @keyframes cursor-blink{0%,100%{opacity:.3}50%{opacity:.8}}
 
@@ -126,7 +123,7 @@
   .back-btn svg{width:29px;height:29px;stroke:rgba(0,0,0,.4);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
   .back-btn:active{transform:scale(.9)}
 
-  /* ── Send CTA button (compose mode) — 홈 CTA와 동일 스타일 ── */
+  /* ── Send CTA button (compose mode) — Liquid Glass ── */
   .send-btn{position:fixed;bottom:env(safe-area-inset-bottom,0px);left:0;right:0;z-index:90;
     padding:0 40px 24px;display:flex;justify-content:center;
     background:none;border:none;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .3s ease}
@@ -146,7 +143,7 @@
     box-shadow:inset 0 1px 3px rgba(255,255,255,.3),inset 0 -1px 2px rgba(0,0,0,.03),inset 2px 0 4px rgba(255,255,255,.07),inset -2px 0 4px rgba(255,255,255,.07),0 0 8px rgba(255,255,255,.15)}
   body.compose .send-btn{opacity:.4;pointer-events:auto}
   body.compose .send-btn.has-text{opacity:1}
-  body.toast .send-btn{opacity:0;pointer-events:none}
+  body.toast .send-btn{opacity:0 !important;pointer-events:none !important}
   .send-btn:active .send-inner{transform:scale(.97)}
 
   /* ── Toast ── */
@@ -213,8 +210,22 @@ AX 문화가 궁금해</div></div>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script>
-/* ── Firebase ── */
-const ROOM_ID = new URLSearchParams(location.search).get('room') || 'nexbot-live';
+/* ══════════════════════════════════════
+   상태 & DOM
+   ══════════════════════════════════════ */
+// 시간 기반 Room ID — 1시간마다 자동 변경 (한국시간 기준)
+function getTimeRoom() {
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const seed = kst.getUTCFullYear() * 1000000 + (kst.getUTCMonth()+1) * 10000 + kst.getUTCDate() * 100 + kst.getUTCHours();
+  // 간단한 해시 → 6자리 코드
+  let h = seed ^ 0x5DEECE66;
+  h = ((h >> 16) ^ h) * 0x45d9f3b;
+  h = ((h >> 16) ^ h) * 0x45d9f3b;
+  h = (h >> 16) ^ h;
+  return 'ennoia-' + Math.abs(h).toString(36).slice(0, 6);
+}
+const ROOM_ID = new URLSearchParams(location.search).get('room') || getTimeRoom();
 firebase.initializeApp({
   apiKey:"AIzaSyDYMrkbYHkUmAqMfvw8QLOXrzoNe3IEpCQ",
   authDomain:"somethinggg-c7f23.firebaseapp.com",
@@ -223,7 +234,6 @@ firebase.initializeApp({
 });
 const qRef = firebase.database().ref(`rooms/${ROOM_ID}/questions`);
 
-/* ── DOM ── */
 const hiddenInput = document.getElementById('hiddenInput');
 const typingDisplay = document.getElementById('typingDisplay');
 const sendBtn = document.getElementById('sendBtn');
@@ -231,16 +241,19 @@ const cancelBtn = document.getElementById('cancelBtn');
 const sentToast = document.getElementById('sentToast');
 const overlay = document.querySelector('.compose-overlay');
 
-let isComposing = false;
-let prevLen = 0;
-let sendLock = false;
-let toastActive = false; // 토스트 시퀀스 진행 중 플래그
+// 상태 플래그 (최소화)
+let isComposing = false;   // compose 모드 활성
+let toastActive = false;   // 토스트 시퀀스 진행
+let sendLock = false;      // 중복 전송 방지
+let imeComposing = false;  // IME 조합 중
 
-/* ── Helper: 입력 클리어 ── */
-function clearInput() {
-  hiddenInput.value = '';
-  prevLen = 0;
-  hiddenInput.blur();
+/* ══════════════════════════════════════
+   헬퍼
+   ══════════════════════════════════════ */
+function resetSendBtn() {
+  sendBtn.style.bottom = '';
+  sendBtn.style.paddingBottom = '';
+  sendBtn.classList.remove('has-text');
 }
 
 function resetOverlay() {
@@ -251,7 +264,18 @@ function resetOverlay() {
   overlay.style.paddingTop = '';
 }
 
-/* ── Keyboard position sync (mobile) ── */
+function resetTyping() {
+  typingDisplay.style.cssText = '';
+  typingDisplay.style.display = '';
+  typingDisplay.innerHTML = '<span class="cursor"></span>';
+  sentToast.classList.remove('show', 'exit');
+  sentToast.innerHTML = '';
+  hiddenInput.value = '';
+}
+
+/* ══════════════════════════════════════
+   키보드 위치 동기화
+   ══════════════════════════════════════ */
 if (window.visualViewport) {
   const syncOverlay = () => {
     if (!isComposing) return;
@@ -264,7 +288,6 @@ if (window.visualViewport) {
     if (kbH > 100) {
       overlay.style.justifyContent = 'flex-start';
       overlay.style.paddingTop = Math.round(vvH * 0.3) + 'px';
-      // 전송 버튼을 키보드 바로 위에 배치
       sendBtn.style.bottom = kbH + 'px';
       sendBtn.style.paddingBottom = '12px';
     } else {
@@ -278,16 +301,18 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener('scroll', syncOverlay);
 }
 
-/* ── Compose mode ── */
+/* ══════════════════════════════════════
+   Compose 모드 진입/퇴장
+   ══════════════════════════════════════ */
 function enterCompose() {
   if (isComposing || toastActive) return;
   isComposing = true;
   hiddenInput.value = '';
-  prevLen = 0;
   typingDisplay.innerHTML = '<span class="cursor"></span>';
   typingDisplay.style.cssText = '';
   sentToast.classList.remove('show', 'exit');
   sentToast.innerHTML = '';
+  sendBtn.classList.remove('has-text');
   document.body.classList.add('compose');
 }
 
@@ -296,22 +321,13 @@ function exitCompose() {
   isComposing = false;
   hiddenInput.blur();
   document.body.classList.remove('compose');
-  setTimeout(() => {
-    resetOverlay();
-    typingDisplay.style.cssText = '';
-    typingDisplay.innerHTML = '<span class="cursor"></span>';
-    sentToast.classList.remove('show', 'exit');
-    sentToast.innerHTML = '';
-    hiddenInput.value = '';
-    prevLen = 0;
-  }, 700);
+  resetSendBtn();
+  setTimeout(() => { resetOverlay(); resetTyping(); }, 700);
 }
 
-// label[for="hiddenInput"]이 탭하면 input에 focus → compose 진입
 hiddenInput.addEventListener('focus', () => { if (!isComposing) enterCompose(); });
 cancelBtn.addEventListener('click', exitCompose);
 
-// CTA 직접 클릭 백업 (label[for]이 iOS에서 focus 못 줄 때 대비)
 document.getElementById('ctaBtn').addEventListener('click', (e) => {
   if (toastActive) return;
   e.preventDefault();
@@ -319,172 +335,147 @@ document.getElementById('ctaBtn').addEventListener('click', (e) => {
   if (!isComposing) enterCompose();
 });
 
-// compose overlay 탭 → 키보드 재오픈 (토스트 중엔 무시)
-overlay.addEventListener('click', (e) => {
-  if (toastActive) { e.stopPropagation(); return; }
+overlay.addEventListener('click', () => {
+  if (toastActive) return;
   if (isComposing) hiddenInput.focus();
 });
 
-/* ── Typing display (입력 미러링 + 커서 위치 반영) ── */
+/* ══════════════════════════════════════
+   타이핑 디스플레이 (간소화 — 애니메이션 제거)
+   ══════════════════════════════════════ */
 function syncDisplay() {
   const text = hiddenInput.value;
-  const newLen = text.length;
   const cursorPos = hiddenInput.selectionStart ?? text.length;
   let html = '';
   for (let i = 0; i < text.length; i++) {
     if (i === cursorPos) html += '<span class="cursor"></span>';
     const ch = text[i] === ' ' ? '&nbsp;' : text[i].replace(/</g, '&lt;');
-    const pulse = (i >= prevLen && newLen > prevLen) ? ' style="animation:type-pulse .6s ease forwards"' : '';
-    html += `<span class="char"${pulse}>${ch}</span>`;
+    html += ch;
   }
   if (cursorPos >= text.length) html += '<span class="cursor"></span>';
   typingDisplay.innerHTML = html;
-  prevLen = newLen;
-  // 전송 버튼 활성화 상태
   if (text.trim()) sendBtn.classList.add('has-text');
   else sendBtn.classList.remove('has-text');
 }
 hiddenInput.addEventListener('input', syncDisplay);
-// 커서 이동(화살표, 탭 등)도 반영
 hiddenInput.addEventListener('keyup', syncDisplay);
 hiddenInput.addEventListener('click', syncDisplay);
-hiddenInput.addEventListener('select', syncDisplay);
-
-/* ── 전송 버튼 (가장 확실한 전송 방법) ── */
-sendBtn.addEventListener('click', (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  imeComposing = false;
-  pendingEnter = false;
-  trySend();
-});
 
 /* ══════════════════════════════════════
-   전송 이벤트
+   전송 로직 (단일 trySend → send)
    ══════════════════════════════════════ */
 function trySend() {
   if (sendLock || toastActive) return;
   const text = hiddenInput.value.trim();
-  if (!text) return; // 빈 텍스트면 무시
+  if (!text) return;
   sendLock = true;
-  setTimeout(() => { sendLock = false; }, 300);
-  // 30ms 딜레이: compositionend가 텍스트 커밋 완료한 뒤 실행
-  setTimeout(() => send(), 30);
+  // IME 조합 커밋 대기 후 전송
+  setTimeout(() => send(), 50);
 }
 
-// ★ 0) form submit — 모바일 Enter/Send의 가장 확실한 신호
-document.getElementById('hiddenForm').addEventListener('submit', (e) => {
+async function send() {
+  const text = hiddenInput.value.trim();
+  if (!text) { sendLock = false; return; }
+  try { await qRef.push({ text, ts: Date.now() }); }
+  catch(e) { console.error('Firebase send error:', e); sendLock = false; return; }
+  showSuccessToast();
+}
+
+/* ══════════════════════════════════════
+   전송 이벤트 (정리: 3개만)
+   ══════════════════════════════════════ */
+
+// 1) 전송 버튼 — touchend (iOS에서 가장 확실)
+let btnTouching = false;
+sendBtn.addEventListener('touchstart', () => { btnTouching = true; }, { passive: true });
+sendBtn.addEventListener('touchend', (e) => {
   e.preventDefault();
+  btnTouching = false;
   imeComposing = false;
-  pendingEnter = false;
+  trySend();
+});
+sendBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  if (btnTouching) return; // touchend에서 이미 처리
+  imeComposing = false;
   trySend();
 });
 
-// IME 조합 상태 추적
-let imeComposing = false;
-hiddenInput.addEventListener('compositionstart', () => { imeComposing = true; });
-hiddenInput.addEventListener('compositionend', () => {
+// 2) 엔터키 — form submit (모바일 키보드 Send 버튼의 가장 확실한 신호)
+document.getElementById('hiddenForm').addEventListener('submit', (e) => {
+  e.preventDefault();
   imeComposing = false;
-  if (pendingEnter) { pendingEnter = false; trySend(); }
+  trySend();
 });
 
-let pendingEnter = false;
-
-// 1) keydown Enter
+// 3) keydown Enter 백업 (form submit이 안 잡히는 경우 대비)
 hiddenInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     if (imeComposing) {
-      pendingEnter = true;
+      // IME 조합 중이면 compositionend 기다린 후 전송
+      const waitAndSend = () => {
+        hiddenInput.removeEventListener('compositionend', waitAndSend);
+        setTimeout(trySend, 50);
+      };
+      hiddenInput.addEventListener('compositionend', waitAndSend, { once: true });
+      // 안전장치: 300ms 내 compositionend 안 오면 강제 전송
       setTimeout(() => {
-        if (pendingEnter) { pendingEnter = false; imeComposing = false; trySend(); }
-      }, 200);
+        hiddenInput.removeEventListener('compositionend', waitAndSend);
+        imeComposing = false;
+        trySend();
+      }, 300);
     } else {
       trySend();
     }
   }
 });
 
-// 2) beforeinput — 가장 신뢰할 수 있는 모바일 엔터 감지
-hiddenInput.addEventListener('beforeinput', (e) => {
-  if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') {
-    e.preventDefault();
-    imeComposing = false;
-    pendingEnter = false;
-    trySend();
-  }
-});
+// IME 상태 추적
+hiddenInput.addEventListener('compositionstart', () => { imeComposing = true; });
+hiddenInput.addEventListener('compositionend', () => { imeComposing = false; });
 
-// 3) textInput 백업 (일부 Android)
-hiddenInput.addEventListener('textInput', (e) => {
-  if (e.data === '\n' || e.data === '\r') {
-    e.preventDefault();
-    imeComposing = false;
-    pendingEnter = false;
-    trySend();
-  }
-}, true);
-
-
-// 4) ★ 메인: blur 기반 전송 (iOS Send 버튼의 유일하게 확실한 신호)
-// 뒤로가기 버튼 탭과 구분하기 위해 플래그 사용
-let backBtnTapped = false;
-cancelBtn.addEventListener('pointerdown', () => { backBtnTapped = true; });
-cancelBtn.addEventListener('touchstart', () => { backBtnTapped = true; }, { passive: true });
-
-hiddenInput.addEventListener('blur', () => {
-  // 뒤로가기 탭이면 전송하지 않음
-  if (backBtnTapped) { backBtnTapped = false; return; }
-  if (!isComposing || !hiddenInput.value.trim() || sendLock || toastActive) return;
-  setTimeout(() => {
-    if (backBtnTapped) { backBtnTapped = false; return; }
-    if (isComposing && document.activeElement !== hiddenInput && hiddenInput.value.trim() && !sendLock && !toastActive) {
-      trySend();
-    }
-  }, 300);
-});
+// blur — 전송하지 않음 (의도치 않은 전송 방지). 전송은 버튼/엔터만.
 
 /* ══════════════════════════════════════
-   성공 토스트 (키보드 닫고 전체 오버레이)
+   성공 토스트
    ══════════════════════════════════════ */
 function showSuccessToast() {
   isComposing = false;
   toastActive = true;
   document.body.classList.add('toast');
-  clearInput();
+  resetSendBtn();
+  hiddenInput.value = '';
+  hiddenInput.blur();
   resetOverlay();
   overlay.style.justifyContent = 'center';
 
-  // 타이핑 디스플레이 페이드아웃 (위로 크게 올라가면서 블러+축소)
-  typingDisplay.style.transition = 'opacity .7s cubic-bezier(.4,0,.2,1), transform .7s cubic-bezier(.4,0,.2,1), filter .7s cubic-bezier(.4,0,.2,1)';
+  // 타이핑 디스플레이 페이드아웃
+  typingDisplay.style.transition = 'opacity .7s ease, transform .7s ease, filter .7s ease';
   typingDisplay.style.opacity = '0';
   typingDisplay.style.transform = 'translateY(-60px) scale(0.92)';
   typingDisplay.style.filter = 'blur(16px)';
 
-  // ★ 인트로급 임팩트: 오브 모이고 회전 + whiteOrb 사라짐
   if (window.triggerOrbImpact) window.triggerOrbImpact();
 
   setTimeout(() => {
     typingDisplay.style.display = 'none';
     sentToast.innerHTML = '<div class="toast-main toast-line">전송했어요<div class="toast-glow">전송했어요</div></div><div class="toast-sub-group"><div class="toast-sub toast-line">질문이 많으면 중요한 내용부터 답변해 드려요.</div><div class="toast-sub toast-line">부적절한 질문에는 답하기 어려워요.</div></div>';
     sentToast.classList.add('show');
-    // 순차 등장
     const lines = sentToast.querySelectorAll('.toast-line');
     lines.forEach((el, i) => setTimeout(() => el.classList.add('show'), i * 400));
   }, 500);
 
-  // 5초 뒤 퇴장 → 홈으로 복귀
+  // 5초 뒤 홈으로 복귀
   setTimeout(() => {
     sentToast.classList.add('exit');
     if (window.endOrbImpact) window.endOrbImpact();
     setTimeout(() => {
-      // 순차 페이드인 복귀: compose 해제 전 요소들 숨기고 순차 등장
       const cont = document.querySelector('.container');
       const guideLabel = document.querySelector('.guide-label');
       const exampleArea = document.querySelector('.example-area');
       const ctaArea = document.querySelector('.cta-area');
 
-      // 먼저 show 클래스 제거해서 숨김
       guideLabel.classList.remove('show');
       exampleArea.classList.remove('show');
       ctaArea.classList.remove('show');
@@ -492,10 +483,11 @@ function showSuccessToast() {
       cont.style.filter = 'blur(20px)';
 
       toastActive = false;
+      sendLock = false;
       document.body.classList.remove('compose', 'toast');
+      resetSendBtn();
       if (window.resetSlides) window.resetSlides();
 
-      // 순차 페이드인 (인트로처럼)
       requestAnimationFrame(() => {
         cont.style.transition = 'opacity .7s ease, filter .7s ease';
         cont.style.opacity = '1';
@@ -506,54 +498,25 @@ function showSuccessToast() {
         setTimeout(() => { cont.style.cssText = ''; }, 1500);
       });
 
-      setTimeout(() => {
-        typingDisplay.style.cssText = '';
-        typingDisplay.style.display = '';
-        typingDisplay.innerHTML = '<span class="cursor"></span>';
-        sentToast.classList.remove('show', 'exit');
-        sentToast.innerHTML = '';
-        hiddenInput.value = '';
-        prevLen = 0;
-      }, 700);
+      setTimeout(() => resetTyping(), 700);
     }, 800);
   }, 5000);
 }
 
 /* ══════════════════════════════════════
-   Send
+   인트로 시퀀스
    ══════════════════════════════════════ */
-async function send() {
-  const text = hiddenInput.value.trim();
-  if (!text) return;
-
-  // Firebase 전송
-  try { await qRef.push({ text, ts: Date.now() }); }
-  catch(e) {
-    console.error('Firebase send error:', e);
-    sendLock = false;
-    return;
-  }
-
-  showSuccessToast();
-}
-
-/* ── Intro title sequence ── */
 {
   const l1 = document.getElementById('introL1');
   const l2 = document.getElementById('introL2');
   const introEl = document.getElementById('introTitle');
-  // 0.5s: "엔노이아에게" 등장
   setTimeout(() => l1.classList.add('show'), 500);
-  // 1.2s: "질문해 보세요" 등장
   setTimeout(() => l2.classList.add('show'), 1200);
-  // 2.5s: 둘 다 동시에 위로 사라짐
   setTimeout(() => { l1.classList.add('hide'); l1.classList.remove('show'); l2.classList.add('hide'); l2.classList.remove('show'); }, 2500);
-  // 3.5s~: UI 순차 등장
   setTimeout(() => { introEl.style.display = 'none'; }, 3400);
   setTimeout(() => document.querySelector('.guide-label').classList.add('show'), 3500);
   setTimeout(() => document.querySelector('.example-area').classList.add('show'), 4000);
   setTimeout(() => document.querySelector('.cta-area').classList.add('show'), 4500);
-  // CTA 완전히 나타난 후 backdrop-filter 켜고 마스크 페이드아웃
   setTimeout(() => {
     const btn = document.getElementById('ctaBtn');
     btn.style.backdropFilter = 'blur(40px) saturate(4) brightness(1.15) contrast(1.2)';
@@ -561,7 +524,9 @@ async function send() {
   }, 5500);
 }
 
-/* ── Rotating text ── */
+/* ══════════════════════════════════════
+   롤링 텍스트
+   ══════════════════════════════════════ */
 {
   const slides = document.querySelectorAll('.txt-slide');
   let cur = 0, gt = null, rotInterval = null, resetTimer = null;
@@ -592,7 +557,6 @@ async function send() {
     }, 5000);
   }
 
-  // 전역: 토스트 복귀 시 리셋
   window.resetSlides = function() {
     if (rotInterval) { clearInterval(rotInterval); rotInterval = null; }
     if (gt) { clearTimeout(gt); gt = null; }
@@ -603,7 +567,6 @@ async function send() {
     resetTimer = setTimeout(() => { resetTimer = null; startRotation(); }, 1500);
   };
 
-  // 인트로 후 시작
   setTimeout(() => {
     gt = setTimeout(() => slides[0].classList.add('glow'), 1000);
   }, 4000);
@@ -627,13 +590,11 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 50);
 camera.position.set(0, 0, 6.9);
 
-// Lights (consolidated)
 scene.add(new THREE.AmbientLight(0xffffff, 0.2));
 [[2,3,4,1.2],[-3,1,2,0.5],[0,0,-4,2],[-3,0,-3,1],[3,0,-3,1]].forEach(([x,y,z,i])=>{
   const l=new THREE.DirectionalLight(x===-3&&y===1?0xaabbff:0xffffff,i);l.position.set(x,y,z);scene.add(l);
 });
 
-// Env map
 const pmrem = new THREE.PMREMGenerator(renderer);
 const envS = new THREE.Scene();
 envS.add(new THREE.Mesh(new THREE.SphereGeometry(10,16,16), new THREE.ShaderMaterial({
@@ -728,26 +689,22 @@ const clock=new THREE.Clock();
 const FI=1000/30;
 let lf=0;
 const INTRO_DUR = 3.0;
-const TOAST_DUR = 2.5; // 토스트 임팩트 모션 길이
-let toastImpactStart = -1; // -1 = 비활성
-let baseSpinOffset = 0; // 인트로 끝난 후 spin 기준값
-let stableSpin = 6 * Math.PI; // 안정 상태 spin 기준 (인트로/토스트 끝날 때 갱신)
-let stableSpinT = 3.0; // 안정 상태 시작 시각
+const TOAST_DUR = 2.5;
+let toastImpactStart = -1;
+let baseSpinOffset = 0;
+let stableSpin = 6 * Math.PI;
+let stableSpinT = 3.0;
 
-// 전역 트리거 함수 (showSuccessToast에서 호출)
 window.triggerOrbImpact = function() {
   const dt = clock.getElapsedTime();
-  baseSpinOffset = stableSpin + (dt - stableSpinT) * 0.15; // 현재 안정 spin에서 이어가기
+  baseSpinOffset = stableSpin + (dt - stableSpinT) * 0.15;
   toastImpactStart = dt;
-  // whiteOrb 페이드아웃
   const orb = document.getElementById('whiteOrb');
   orb.style.transition = 'opacity .6s ease';
   orb.style.opacity = '0';
-  // 캔버스 밝게
   const cv = document.getElementById('cubeCanvas');
   cv.style.transition = 'opacity .5s ease';
   cv.style.opacity = '1';
-  // 오브 모션 끝나면 whiteOrb 빠르게 복귀
   setTimeout(() => {
     orb.style.transition = 'opacity .8s ease';
     orb.style.opacity = '1';
@@ -756,22 +713,18 @@ window.triggerOrbImpact = function() {
   }, 1300);
 };
 window.endOrbImpact = function() {
-  // whiteOrb 복귀
   const orb = document.getElementById('whiteOrb');
   orb.style.transition = 'opacity 1s ease';
   orb.style.opacity = '1';
-  // 캔버스 복귀
   const cv = document.getElementById('cubeCanvas');
   cv.style.transition = 'opacity .8s ease';
   cv.style.opacity = '1';
-  // bloomLayer 복귀
   const bl = document.getElementById('bloomLayer');
   bl.style.transition = 'opacity .8s ease';
   bl.style.opacity = '1';
   toastImpactStart = -1;
 };
 
-// 인트로 전용 모션 (uOrbSpeed + 스케일 변경 OK — uTime이 0부터)
 function calcIntroMotion(t) {
   const midT = 0.35, minSpread = 0.15;
   let spread;
@@ -793,7 +746,6 @@ function calcIntroMotion(t) {
   return {spread, spin, speed, grow, s};
 }
 
-// 토스트 전용 모션 (uOrbSpeed 고정! uTime이 이미 크므로 speed 변경하면 궤도 점프)
 function calcToastMotion(t) {
   const midT = 0.4, minSpread = 0.2;
   let spread;
@@ -805,15 +757,14 @@ function calcToastMotion(t) {
     spread = minSpread + ss*(1-minSpread);
   }
   const spinEase = 1 - Math.pow(1-t,3);
-  const spin = 3*Math.PI*spinEase; // 1.5바퀴
-  // speed는 항상 2.0 (안정 상태 유지 — 궤도 점프 방지)
+  const spin = 3*Math.PI*spinEase;
   let grow = 1.875;
   if (t < midT) {
     const gp = t / midT, gs = gp*gp*(3-2*gp);
-    grow = 1.875 - 0.375*gs; // 살짝 줄어들었다가
+    grow = 1.875 - 0.375*gs;
   } else {
     const gp = (t-midT)/(1-midT), gs = gp*gp*(3-2*gp);
-    grow = 1.5 + 0.375*gs; // 다시 복귀
+    grow = 1.5 + 0.375*gs;
   }
   return {spread, spin, speed: 2.0, grow, s: 1.0};
 }
@@ -828,7 +779,6 @@ function calcToastMotion(t) {
   let spread, spin, speed, grow, s;
 
   if (toastImpactStart > 0) {
-    // ★ 토스트 임팩트 모션 (speed 고정, 궤도 안정)
     const tt = Math.min((dt - toastImpactStart) / TOAST_DUR, 1.0);
     const m = calcToastMotion(tt);
     spread = m.spread; speed = m.speed; grow = m.grow; s = m.s;
@@ -839,12 +789,10 @@ function calcToastMotion(t) {
       toastImpactStart = -1;
     }
   } else if (dt < INTRO_DUR) {
-    // 인트로 모션 (speed + 스케일 전부 변경 OK)
     const t = dt / INTRO_DUR;
     const m = calcIntroMotion(t);
     spread = m.spread; spin = m.spin; speed = m.speed; grow = m.grow; s = m.s;
   } else {
-    // 안정 상태: 마지막 모션 끝 spin에서 이어서 느리게 회전
     spread = 1.0; speed = 2.0; grow = 1.875; s = 1.0;
     spin = stableSpin + (dt - stableSpinT) * 0.15;
   }
