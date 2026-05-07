@@ -327,11 +327,10 @@ input.addEventListener('input', () => {
    전송
    ══════════════════════════════════════ */
 async function trySend() {
-  console.log('[DEBUG trySend] sendLock:', sendLock, 'toastActive:', toastActive, 'text:', JSON.stringify(input.value.trim()));
   if (sendLock || toastActive) { console.log('[DEBUG trySend] ❌ 전송 차단! sendLock:', sendLock, 'toastActive:', toastActive); return; }
+  sendLock = true; // ★ 즉시 락 — 연타 방지
   const text = input.value.trim();
-  if (!text) { console.log('[DEBUG trySend] ❌ 빈 텍스트'); return; }
-  sendLock = true;
+  if (!text) { console.log('[DEBUG trySend] ❌ 빈 텍스트'); sendLock = false; return; }
   console.log('[DEBUG trySend] ✅ 전송 시작:', text);
   try {
     // 5초 타임아웃 — Firebase 연결 끊겼을 때 무한 대기 방지
