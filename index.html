@@ -331,13 +331,22 @@ hiddenInput.addEventListener('compositionend', () => {
 
 let pendingEnter = false;
 
-// 1) keydown Enter
+// 1) keydown Enter — 모바일 IME 호환
 hiddenInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     if (imeComposing) {
       // IME 조합 중이면 compositionend 후에 전송
       pendingEnter = true;
+      // ★ 안전장치: 일부 모바일 IME는 compositionend를 안 보냄
+      // 300ms 후에도 imeComposing이면 강제 해제 후 전송
+      setTimeout(() => {
+        if (pendingEnter) {
+          pendingEnter = false;
+          imeComposing = false;
+          trySend();
+        }
+      }, 300);
     } else {
       trySend();
     }
@@ -348,11 +357,26 @@ hiddenInput.addEventListener('keydown', (e) => {
 hiddenInput.addEventListener('beforeinput', (e) => {
   if (e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') {
     e.preventDefault();
-    if (!imeComposing) trySend();
+    if (imeComposing) {
+      // IME 중이어도 강제 전송 (모바일 키보드 엔터)
+      imeComposing = false;
+      pendingEnter = false;
+    }
+    trySend();
   }
 });
 
-// 3) ★ 메인: blur 기반 전송 (iOS Send 버튼의 유일하게 확실한 신호)
+// 3) textInput 백업 (일부 Android 키보드가 Enter 대신 이걸 보냄)
+hiddenInput.addEventListener('textInput', (e) => {
+  if (e.data === '\n' || e.data === '\r') {
+    e.preventDefault();
+    imeComposing = false;
+    pendingEnter = false;
+    trySend();
+  }
+}, true);
+
+// 4) ★ 메인: blur 기반 전송 (iOS Send 버튼의 유일하게 확실한 신호)
 hiddenInput.addEventListener('blur', () => {
   if (!isComposing || !hiddenInput.value.trim() || sendLock || toastActive) return;
   setTimeout(() => {
