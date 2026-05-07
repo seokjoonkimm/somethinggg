@@ -213,15 +213,13 @@ AX 문화가 궁금해</div></div>
 /* ══════════════════════════════════════
    상태 & DOM
    ══════════════════════════════════════ */
-// 슬롯 코드는 QR URL의 ?s= 파라미터에서 받음
-const SLOT = new URLSearchParams(location.search).get('s') || 'default';
 firebase.initializeApp({
   apiKey:"AIzaSyDYMrkbYHkUmAqMfvw8QLOXrzoNe3IEpCQ",
   authDomain:"somethinggg-c7f23.firebaseapp.com",
   databaseURL:"https://somethinggg-c7f23-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId:"somethinggg-c7f23"
 });
-const qRef = firebase.database().ref(`slots/${SLOT}/questions`);
+const qRef = firebase.database().ref('questions');
 
 const input = document.getElementById('composeInput');
 const sendBtn = document.getElementById('sendBtn');
