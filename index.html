@@ -102,20 +102,21 @@
   @keyframes wh-breathe{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.12)}100%{transform:translate(-50%,-50%) scale(1)}}
 
   /* ── Compose overlay ── */
-  .compose-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:env(safe-area-inset-top,0px) 24px env(safe-area-inset-bottom,0px);opacity:0;pointer-events:none;transition:opacity .7s ease,height .3s ease}
+  .compose-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:env(safe-area-inset-top,0px) 24px env(safe-area-inset-bottom,0px);opacity:0;pointer-events:none;transition:opacity .7s ease}
   body.compose .compose-overlay{opacity:1;pointer-events:auto}
   body.toast .compose-overlay{pointer-events:none}
   body.toast .back-btn{opacity:0;pointer-events:none}
-  body.toast .hidden-input{pointer-events:none;z-index:-1}
 
-  .typing-display{font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.5;letter-spacing:-.04em;text-align:center;width:85%;min-height:60px;position:relative;word-break:keep-all;overflow-wrap:break-word;color:rgba(34,34,34,.85);margin-top:30px}
-  .typing-display .cursor{display:inline-block;width:3px;height:1em;background:rgba(131,100,255,.9);margin-left:2px;animation:cursor-blink 1.2s ease-in-out infinite;vertical-align:text-bottom;border-radius:1.5px}
-  @keyframes cursor-blink{0%,100%{opacity:.3}50%{opacity:.8}}
-
-  /* Hidden input */
-  .hidden-input{width:100%;height:100%;opacity:0.01;border:none;outline:none;background:transparent;font-size:16px;color:transparent;caret-color:transparent;-webkit-appearance:none;-webkit-user-select:text;user-select:text;padding:30% 20% 0;text-align:center;position:absolute;top:0;left:0}
-  #hiddenForm{display:block}
-  body:not(.compose) #hiddenForm{pointer-events:none;z-index:-1}
+  /* ── 텍스트 입력 (네이티브) ── */
+  .compose-input{
+    width:85%;font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.5;letter-spacing:-.04em;
+    text-align:center;color:rgba(34,34,34,.85);caret-color:rgba(131,100,255,.9);
+    background:transparent;border:none;outline:none;resize:none;
+    -webkit-appearance:none;word-break:keep-all;overflow-wrap:break-word;
+    padding:0;margin:0;min-height:1.5em;max-height:40vh;
+    font-family:'Pretendard',system-ui,-apple-system,sans-serif;
+  }
+  .compose-input::placeholder{color:rgba(34,34,34,.25);font-weight:500}
 
   /* ── Back button ── */
   .back-btn{position:fixed;top:calc(env(safe-area-inset-top) + 12px);left:calc(env(safe-area-inset-left) + 16px);z-index:80;width:44px;height:44px;border:none;background:none;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .5s ease;display:flex;align-items:center;justify-content:center}
@@ -198,12 +199,9 @@ AX 문화가 궁금해</div></div>
 <button class="back-btn" id="cancelBtn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
 <button class="send-btn" id="sendBtn"><div class="send-inner"><span style="position:relative;z-index:3">질문하기</span></div></button>
 
-<div class="compose-overlay">
-  <div class="typing-display" id="typingDisplay"><span class="cursor"></span></div>
+<div class="compose-overlay" id="composeOverlay">
+  <textarea class="compose-input" id="composeInput" rows="1" maxlength="200" placeholder="무엇이든 물어보세요" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="send"></textarea>
   <div class="sent-toast" id="sentToast"></div>
-  <form id="hiddenForm" action="javascript:void(0)" style="position:fixed;top:70px;left:0;width:100%;bottom:80px;z-index:61;margin:0;padding:0" autocomplete="off">
-    <input class="hidden-input" id="hiddenInput" type="text" maxlength="200" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="send">
-  </form>
 </div>
 
 
@@ -213,71 +211,54 @@ AX 문화가 궁금해</div></div>
 /* ══════════════════════════════════════
    상태 & DOM
    ══════════════════════════════════════ */
-// 시간 기반 Room ID — 1시간마다 자동 변경 (한국시간 기준)
+// 시간 기반 Room ID — 3분마다 자동 변경 (한국시간 기준)
 function getTimeRoom() {
   const now = new Date();
   const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const seed = kst.getUTCFullYear() * 1000000 + (kst.getUTCMonth()+1) * 10000 + kst.getUTCDate() * 100 + kst.getUTCHours();
-  // 간단한 해시 → 6자리 코드
-  let h = seed ^ 0x5DEECE66;
+  const slot = Math.floor(kst.getTime() / (3 * 60 * 1000)); // 3분 단위 슬롯
+  let h = slot ^ 0x5DEECE66;
   h = ((h >> 16) ^ h) * 0x45d9f3b;
   h = ((h >> 16) ^ h) * 0x45d9f3b;
   h = (h >> 16) ^ h;
   return 'ennoia-' + Math.abs(h).toString(36).slice(0, 6);
 }
-const ROOM_ID = new URLSearchParams(location.search).get('room') || getTimeRoom();
+const fixedRoom = new URLSearchParams(location.search).get('room');
+let ROOM_ID = fixedRoom || getTimeRoom();
 firebase.initializeApp({
   apiKey:"AIzaSyDYMrkbYHkUmAqMfvw8QLOXrzoNe3IEpCQ",
   authDomain:"somethinggg-c7f23.firebaseapp.com",
   databaseURL:"https://somethinggg-c7f23-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId:"somethinggg-c7f23"
 });
-const qRef = firebase.database().ref(`rooms/${ROOM_ID}/questions`);
+let qRef = firebase.database().ref(`rooms/${ROOM_ID}/questions`);
 
-const hiddenInput = document.getElementById('hiddenInput');
-const typingDisplay = document.getElementById('typingDisplay');
+// 30초마다 room 변경 체크 — 디스플레이와 항상 같은 room 유지
+if (!fixedRoom) {
+  setInterval(() => {
+    const newRoom = getTimeRoom();
+    if (newRoom !== ROOM_ID) {
+      ROOM_ID = newRoom;
+      qRef = firebase.database().ref(`rooms/${ROOM_ID}/questions`);
+      console.log('[Room] 새 room 전환:', ROOM_ID);
+    }
+  }, 30000);
+}
+
+const input = document.getElementById('composeInput');
 const sendBtn = document.getElementById('sendBtn');
 const cancelBtn = document.getElementById('cancelBtn');
 const sentToast = document.getElementById('sentToast');
-const overlay = document.querySelector('.compose-overlay');
+const overlay = document.getElementById('composeOverlay');
 
-// 상태 플래그 (최소화)
-let isComposing = false;   // compose 모드 활성
-let toastActive = false;   // 토스트 시퀀스 진행
-let sendLock = false;      // 중복 전송 방지
-let imeComposing = false;  // IME 조합 중
-
-/* ══════════════════════════════════════
-   헬퍼
-   ══════════════════════════════════════ */
-function resetSendBtn() {
-  sendBtn.style.bottom = '';
-  sendBtn.style.paddingBottom = '';
-  sendBtn.classList.remove('has-text');
-}
-
-function resetOverlay() {
-  overlay.style.top = '';
-  overlay.style.height = '';
-  overlay.style.bottom = '';
-  overlay.style.justifyContent = '';
-  overlay.style.paddingTop = '';
-}
-
-function resetTyping() {
-  typingDisplay.style.cssText = '';
-  typingDisplay.style.display = '';
-  typingDisplay.innerHTML = '<span class="cursor"></span>';
-  sentToast.classList.remove('show', 'exit');
-  sentToast.innerHTML = '';
-  hiddenInput.value = '';
-}
+let isComposing = false;
+let toastActive = false;
+let sendLock = false;
 
 /* ══════════════════════════════════════
    키보드 위치 동기화
    ══════════════════════════════════════ */
 if (window.visualViewport) {
-  const syncOverlay = () => {
+  const sync = () => {
     if (!isComposing) return;
     const vvH = window.visualViewport.height;
     const vvTop = window.visualViewport.offsetTop;
@@ -287,7 +268,7 @@ if (window.visualViewport) {
     overlay.style.bottom = 'auto';
     if (kbH > 100) {
       overlay.style.justifyContent = 'flex-start';
-      overlay.style.paddingTop = Math.round(vvH * 0.3) + 'px';
+      overlay.style.paddingTop = Math.round(vvH * 0.25) + 'px';
       sendBtn.style.bottom = kbH + 'px';
       sendBtn.style.paddingBottom = '12px';
     } else {
@@ -297,8 +278,8 @@ if (window.visualViewport) {
       sendBtn.style.paddingBottom = '';
     }
   };
-  window.visualViewport.addEventListener('resize', syncOverlay);
-  window.visualViewport.addEventListener('scroll', syncOverlay);
+  window.visualViewport.addEventListener('resize', sync);
+  window.visualViewport.addEventListener('scroll', sync);
 }
 
 /* ══════════════════════════════════════
@@ -307,135 +288,86 @@ if (window.visualViewport) {
 function enterCompose() {
   if (isComposing || toastActive) return;
   isComposing = true;
-  hiddenInput.value = '';
-  typingDisplay.innerHTML = '<span class="cursor"></span>';
-  typingDisplay.style.cssText = '';
+  input.value = '';
+  input.style.height = 'auto';
   sentToast.classList.remove('show', 'exit');
   sentToast.innerHTML = '';
   sendBtn.classList.remove('has-text');
   document.body.classList.add('compose');
+  setTimeout(() => input.focus(), 100);
 }
 
 function exitCompose() {
   if (toastActive) return;
   isComposing = false;
-  hiddenInput.blur();
+  input.blur();
   document.body.classList.remove('compose');
-  resetSendBtn();
-  setTimeout(() => { resetOverlay(); resetTyping(); }, 700);
+  sendBtn.style.bottom = '';
+  sendBtn.style.paddingBottom = '';
+  sendBtn.classList.remove('has-text');
+  setTimeout(() => {
+    overlay.style.cssText = '';
+    input.value = '';
+    input.style.height = 'auto';
+    sentToast.classList.remove('show', 'exit');
+    sentToast.innerHTML = '';
+  }, 700);
 }
 
-hiddenInput.addEventListener('focus', () => { if (!isComposing) enterCompose(); });
+input.addEventListener('focus', () => { if (!isComposing) enterCompose(); });
 cancelBtn.addEventListener('click', exitCompose);
 
 document.getElementById('ctaBtn').addEventListener('click', (e) => {
   if (toastActive) return;
   e.preventDefault();
-  hiddenInput.focus();
-  if (!isComposing) enterCompose();
+  enterCompose();
 });
 
-overlay.addEventListener('click', () => {
-  if (toastActive) return;
-  if (isComposing) hiddenInput.focus();
+overlay.addEventListener('click', (e) => {
+  if (toastActive || e.target !== overlay) return;
+  if (isComposing) input.focus();
 });
 
 /* ══════════════════════════════════════
-   타이핑 디스플레이 (간소화 — 애니메이션 제거)
+   textarea 자동 높이 + 버튼 활성화
    ══════════════════════════════════════ */
-function syncDisplay() {
-  const text = hiddenInput.value;
-  const cursorPos = hiddenInput.selectionStart ?? text.length;
-  let html = '';
-  for (let i = 0; i < text.length; i++) {
-    if (i === cursorPos) html += '<span class="cursor"></span>';
-    const ch = text[i] === ' ' ? '&nbsp;' : text[i].replace(/</g, '&lt;');
-    html += ch;
-  }
-  if (cursorPos >= text.length) html += '<span class="cursor"></span>';
-  typingDisplay.innerHTML = html;
-  if (text.trim()) sendBtn.classList.add('has-text');
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = input.scrollHeight + 'px';
+  if (input.value.trim()) sendBtn.classList.add('has-text');
   else sendBtn.classList.remove('has-text');
-}
-hiddenInput.addEventListener('input', syncDisplay);
-hiddenInput.addEventListener('keyup', syncDisplay);
-hiddenInput.addEventListener('click', syncDisplay);
+});
 
 /* ══════════════════════════════════════
-   전송 로직 (단일 trySend → send)
+   전송
    ══════════════════════════════════════ */
-function trySend() {
+async function trySend() {
   if (sendLock || toastActive) return;
-  const text = hiddenInput.value.trim();
+  const text = input.value.trim();
   if (!text) return;
   sendLock = true;
-  // IME 조합 커밋 대기 후 전송
-  setTimeout(() => send(), 50);
+  try {
+    await qRef.push({ text, ts: Date.now() });
+    showSuccessToast();
+  } catch(e) {
+    console.error('Firebase send error:', e);
+    sendLock = false;
+  }
 }
 
-async function send() {
-  const text = hiddenInput.value.trim();
-  if (!text) { sendLock = false; return; }
-  try { await qRef.push({ text, ts: Date.now() }); }
-  catch(e) { console.error('Firebase send error:', e); sendLock = false; return; }
-  showSuccessToast();
-}
-
-/* ══════════════════════════════════════
-   전송 이벤트 (정리: 3개만)
-   ══════════════════════════════════════ */
-
-// 1) 전송 버튼 — touchend (iOS에서 가장 확실)
+// 전송 버튼
 let btnTouching = false;
 sendBtn.addEventListener('touchstart', () => { btnTouching = true; }, { passive: true });
-sendBtn.addEventListener('touchend', (e) => {
-  e.preventDefault();
-  btnTouching = false;
-  imeComposing = false;
-  trySend();
-});
-sendBtn.addEventListener('click', (e) => {
-  e.preventDefault();
-  if (btnTouching) return; // touchend에서 이미 처리
-  imeComposing = false;
-  trySend();
-});
+sendBtn.addEventListener('touchend', (e) => { e.preventDefault(); btnTouching = false; trySend(); });
+sendBtn.addEventListener('click', (e) => { e.preventDefault(); if (!btnTouching) trySend(); });
 
-// 2) 엔터키 — form submit (모바일 키보드 Send 버튼의 가장 확실한 신호)
-document.getElementById('hiddenForm').addEventListener('submit', (e) => {
-  e.preventDefault();
-  imeComposing = false;
-  trySend();
-});
-
-// 3) keydown Enter 백업 (form submit이 안 잡히는 경우 대비)
-hiddenInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
+// 엔터키 (줄바꿈 방지 + 전송)
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.isComposing) {
     e.preventDefault();
-    if (imeComposing) {
-      // IME 조합 중이면 compositionend 기다린 후 전송
-      const waitAndSend = () => {
-        hiddenInput.removeEventListener('compositionend', waitAndSend);
-        setTimeout(trySend, 50);
-      };
-      hiddenInput.addEventListener('compositionend', waitAndSend, { once: true });
-      // 안전장치: 300ms 내 compositionend 안 오면 강제 전송
-      setTimeout(() => {
-        hiddenInput.removeEventListener('compositionend', waitAndSend);
-        imeComposing = false;
-        trySend();
-      }, 300);
-    } else {
-      trySend();
-    }
+    trySend();
   }
 });
-
-// IME 상태 추적
-hiddenInput.addEventListener('compositionstart', () => { imeComposing = true; });
-hiddenInput.addEventListener('compositionend', () => { imeComposing = false; });
-
-// blur — 전송하지 않음 (의도치 않은 전송 방지). 전송은 버튼/엔터만.
 
 /* ══════════════════════════════════════
    성공 토스트
@@ -444,29 +376,30 @@ function showSuccessToast() {
   isComposing = false;
   toastActive = true;
   document.body.classList.add('toast');
-  resetSendBtn();
-  hiddenInput.value = '';
-  hiddenInput.blur();
-  resetOverlay();
+  sendBtn.style.bottom = '';
+  sendBtn.style.paddingBottom = '';
+  sendBtn.classList.remove('has-text');
+  input.value = '';
+  input.style.height = 'auto';
+  input.blur();
+  overlay.style.cssText = '';
   overlay.style.justifyContent = 'center';
 
-  // 타이핑 디스플레이 페이드아웃
-  typingDisplay.style.transition = 'opacity .7s ease, transform .7s ease, filter .7s ease';
-  typingDisplay.style.opacity = '0';
-  typingDisplay.style.transform = 'translateY(-60px) scale(0.92)';
-  typingDisplay.style.filter = 'blur(16px)';
+  // 입력 필드 페이드아웃
+  input.style.transition = 'opacity .5s ease';
+  input.style.opacity = '0';
 
   if (window.triggerOrbImpact) window.triggerOrbImpact();
 
   setTimeout(() => {
-    typingDisplay.style.display = 'none';
+    input.style.display = 'none';
     sentToast.innerHTML = '<div class="toast-main toast-line">전송했어요<div class="toast-glow">전송했어요</div></div><div class="toast-sub-group"><div class="toast-sub toast-line">질문이 많으면 중요한 내용부터 답변해 드려요.</div><div class="toast-sub toast-line">부적절한 질문에는 답하기 어려워요.</div></div>';
     sentToast.classList.add('show');
     const lines = sentToast.querySelectorAll('.toast-line');
     lines.forEach((el, i) => setTimeout(() => el.classList.add('show'), i * 400));
-  }, 500);
+  }, 400);
 
-  // 5초 뒤 홈으로 복귀
+  // 5초 뒤 홈 복귀
   setTimeout(() => {
     sentToast.classList.add('exit');
     if (window.endOrbImpact) window.endOrbImpact();
@@ -485,7 +418,7 @@ function showSuccessToast() {
       toastActive = false;
       sendLock = false;
       document.body.classList.remove('compose', 'toast');
-      resetSendBtn();
+      sendBtn.classList.remove('has-text');
       if (window.resetSlides) window.resetSlides();
 
       requestAnimationFrame(() => {
@@ -498,7 +431,15 @@ function showSuccessToast() {
         setTimeout(() => { cont.style.cssText = ''; }, 1500);
       });
 
-      setTimeout(() => resetTyping(), 700);
+      setTimeout(() => {
+        input.style.display = '';
+        input.style.opacity = '';
+        input.style.transition = '';
+        input.value = '';
+        input.style.height = 'auto';
+        sentToast.classList.remove('show', 'exit');
+        sentToast.innerHTML = '';
+      }, 700);
     }, 800);
   }, 5000);
 }
