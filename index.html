@@ -109,7 +109,7 @@
 
   /* ── 텍스트 입력 (네이티브) ── */
   .compose-input{
-    width:85%;font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.5;letter-spacing:-.04em;
+    width:100%;font-size:clamp(24px, 7vw, 34px);font-weight:700;line-height:1.5;letter-spacing:-.04em;
     text-align:center;color:rgba(34,34,34,.85);caret-color:rgba(131,100,255,.9);
     background:transparent;border:none;outline:none;resize:none;
     -webkit-appearance:none;word-break:keep-all;overflow-wrap:break-word;
@@ -192,7 +192,7 @@ AX 문화가 궁금해</div></div>
     </div>
   </div>
   <div class="cta-area">
-    <label class="cta-btn" id="ctaBtn" for="hiddenInput"><div class="cta-mask"></div><div class="cta-shine"></div><span style="position:relative;z-index:3">엔노이아에게 질문하기</span></label>
+    <label class="cta-btn" id="ctaBtn" for="composeInput"><div class="cta-mask"></div><div class="cta-shine"></div><span style="position:relative;z-index:3">엔노이아에게 질문하기</span></label>
   </div>
 </div>
 
@@ -200,7 +200,9 @@ AX 문화가 궁금해</div></div>
 <button class="send-btn" id="sendBtn"><div class="send-inner"><span style="position:relative;z-index:3">질문하기</span></div></button>
 
 <div class="compose-overlay" id="composeOverlay">
-  <textarea class="compose-input" id="composeInput" rows="1" maxlength="200" placeholder="무엇이든 물어보세요" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="send"></textarea>
+  <form id="composeForm" action="javascript:void(0)" autocomplete="off" style="width:85%;margin:0;padding:0;display:flex;justify-content:center">
+    <textarea class="compose-input" id="composeInput" rows="1" maxlength="200" placeholder="무엇이든 물어보세요" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="send"></textarea>
+  </form>
   <div class="sent-toast" id="sentToast"></div>
 </div>
 
@@ -211,38 +213,15 @@ AX 문화가 궁금해</div></div>
 /* ══════════════════════════════════════
    상태 & DOM
    ══════════════════════════════════════ */
-// 시간 기반 Room ID — 3분마다 자동 변경 (한국시간 기준)
-function getTimeRoom() {
-  const now = new Date();
-  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const slot = Math.floor(kst.getTime() / (3 * 60 * 1000)); // 3분 단위 슬롯
-  let h = slot ^ 0x5DEECE66;
-  h = ((h >> 16) ^ h) * 0x45d9f3b;
-  h = ((h >> 16) ^ h) * 0x45d9f3b;
-  h = (h >> 16) ^ h;
-  return 'ennoia-' + Math.abs(h).toString(36).slice(0, 6);
-}
-const fixedRoom = new URLSearchParams(location.search).get('room');
-let ROOM_ID = fixedRoom || getTimeRoom();
+// 슬롯 코드는 QR URL의 ?s= 파라미터에서 받음
+const SLOT = new URLSearchParams(location.search).get('s') || 'default';
 firebase.initializeApp({
   apiKey:"AIzaSyDYMrkbYHkUmAqMfvw8QLOXrzoNe3IEpCQ",
   authDomain:"somethinggg-c7f23.firebaseapp.com",
   databaseURL:"https://somethinggg-c7f23-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId:"somethinggg-c7f23"
 });
-let qRef = firebase.database().ref(`rooms/${ROOM_ID}/questions`);
-
-// 30초마다 room 변경 체크 — 디스플레이와 항상 같은 room 유지
-if (!fixedRoom) {
-  setInterval(() => {
-    const newRoom = getTimeRoom();
-    if (newRoom !== ROOM_ID) {
-      ROOM_ID = newRoom;
-      qRef = firebase.database().ref(`rooms/${ROOM_ID}/questions`);
-      console.log('[Room] 새 room 전환:', ROOM_ID);
-    }
-  }, 30000);
-}
+const qRef = firebase.database().ref(`slots/${SLOT}/questions`);
 
 const input = document.getElementById('composeInput');
 const sendBtn = document.getElementById('sendBtn');
@@ -355,17 +334,27 @@ async function trySend() {
   }
 }
 
-// 전송 버튼
+// 전송 버튼 — touchend + click
 let btnTouching = false;
 sendBtn.addEventListener('touchstart', () => { btnTouching = true; }, { passive: true });
 sendBtn.addEventListener('touchend', (e) => { e.preventDefault(); btnTouching = false; trySend(); });
 sendBtn.addEventListener('click', (e) => { e.preventDefault(); if (!btnTouching) trySend(); });
 
-// 엔터키 (줄바꿈 방지 + 전송)
+// iOS Send 버튼 (form submit)
+document.getElementById('composeForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  trySend();
+});
+
+// 엔터키 — 항상 줄바꿈 방지, IME 조합 중이면 compositionend 후 전송
 input.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.isComposing) {
+  if (e.key === 'Enter') {
     e.preventDefault();
-    trySend();
+    if (e.isComposing) {
+      input.addEventListener('compositionend', () => setTimeout(trySend, 50), { once: true });
+    } else {
+      trySend();
+    }
   }
 });
 
