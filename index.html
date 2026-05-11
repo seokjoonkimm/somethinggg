@@ -207,7 +207,7 @@ AX 문화가 궁금해</div></div>
 <button class="back-btn" id="cancelBtn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
 <div class="compose-overlay" id="composeOverlay">
   <form id="composeForm" action="javascript:void(0)" autocomplete="off" style="width:85%;margin:0;padding:0;display:flex;justify-content:center">
-    <textarea class="compose-input" id="composeInput" rows="1" maxlength="200" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="send"></textarea>
+    <textarea class="compose-input" id="composeInput" rows="1" maxlength="40" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="send"></textarea>
   </form>
   <div class="sent-toast" id="sentToast"></div>
   <button class="send-btn" id="sendBtn"><div class="send-inner"><span style="position:relative;z-index:3">질문하기</span></div></button>
@@ -254,12 +254,12 @@ if (window.visualViewport) {
     overlay.style.bottom = 'auto';
     if (kbH > 100) {
       overlay.style.justifyContent = 'flex-start';
-      overlay.style.paddingTop = Math.round(vvH * 0.25) + 'px';
+      overlay.style.paddingTop = Math.round(vvH * 0.40) + 'px';
       sendBtn.style.bottom = '0';
       sendBtn.style.paddingBottom = '12px';
     } else {
-      overlay.style.justifyContent = 'center';
-      overlay.style.paddingTop = '';
+      overlay.style.justifyContent = 'flex-start';
+      overlay.style.paddingTop = Math.round(vvH * 0.40) + 'px';
       sendBtn.style.bottom = '';
       sendBtn.style.paddingBottom = '';
     }
@@ -334,13 +334,10 @@ function trySend() {
   const text = input.value.trim();
   if (!text) { console.log('[DEBUG trySend] ❌ 빈 텍스트'); sendLock = false; return; }
 
-  // ★ 중복 전송 방지 — 같은 텍스트 30초 내 재전송 차단
-  if (text === lastSentText && Date.now() - lastSentTime < 30000) {
-    console.log('[DEBUG trySend] ❌ 중복 전송 차단 (같은 텍스트 30초 내)');
-    sendLock = false;
-    showSuccessToast();
-    return;
-  }
+  // ★ 중복 전송 방지 — 비활성화 (전시용)
+  // if (text === lastSentText && Date.now() - lastSentTime < 30000) {
+  //   sendLock = false; showSuccessToast(); return;
+  // }
 
   console.log('[DEBUG trySend] ✅ 전송 시작:', text);
 
